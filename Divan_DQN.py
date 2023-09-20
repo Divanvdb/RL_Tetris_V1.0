@@ -62,7 +62,8 @@ class DQN(nn.Module):
 
 
 class QNetwork:
-    def __init__(self, version = 'DQN_Default', numActions = 4, state_size = 50, lr=0.001, gamma = 0.90, memSize = 50000, logging = False, verbose = True, target_update = 5000, start_epsilon=1, stop_epsilon=0.0001, decay_rate=100000, hiddenLayerSize = (512,256)):
+    def __init__(self, version = 'DQN_Default', numActions = 4, state_size = 50, lr=0.001, gamma = 0.90, memSize = 50000, logging = False, verbose = True, target_update = 5000, start_epsilon=1, stop_epsilon=0.1, decay_rate=300000, hiddenLayerSize = (512,256)):
+        super(QNetwork,self).__init__()
         self.state_size = state_size
         self.numActions = numActions
         self.lr = lr        
@@ -71,7 +72,7 @@ class QNetwork:
         self.decay_rate = decay_rate
         self.memory = ReplayMemory(memSize)
         self.models_dir = f"models/DQN/{version}/" 
-        self.writer = SummaryWriter(f"logs/V02/{version}")
+        self.writer = SummaryWriter(f"logs/{version}")
         self.hiddenLayerSize = hiddenLayerSize
         self.gamma = gamma
         self.steps_done = 0
@@ -101,7 +102,7 @@ class QNetwork:
         sample = random.random()
         
         if sample > self.eps_threshold:
-            self.model_action(state)
+            return self.model_action(state)
         else:
             return torch.tensor([[random.randrange(self.numActions)]], device=device, dtype=torch.long)
         
@@ -150,7 +151,7 @@ class QNetwork:
             self.writer.add_scalar("rollout/ep_len_mean", game_lenght, self.steps_done)
             self.writer.add_scalar("rollout/exploration_rate", self.eps_threshold, self.steps_done)
 
-    def train(self, env, episodes=1):
+    def train(self, env, episodes=1, preprocess=False):
         """Trains the Neural Network for x episodes and returns the amount of steps, rewards and scores.
 
         An episode is the same as one game of tetris from start to game over
@@ -163,19 +164,26 @@ class QNetwork:
         :rtype tuple of (steps, rewards, scoores). steps is an integer, rewards and scores are an integer list
         """
 
+        if episodes == 0:
+            episodes = 500_000  
+
         for e in range(episodes):
             currentObs = env.reset()
-            currentState = self.preprocess(currentObs)
+            if preprocess:
+                currentState = self.preprocess(currentObs)
+            else:
+                currentState = torch.tensor([currentObs[0]], device = device)
 
             done = False
             game_lenght = 0
             totalReward = 0.0
+            flag = False
             
             while not done:
-                action = self.select_action(currentState) #
+                action = self.select_action(currentState) 
                 a = action.item()
 
-                obs, reward, done, info = env.step(a)
+                obs, reward, done, _, _ = env.step(a)
 
                 game_lenght += 1
                 self.steps_done += 1
@@ -183,14 +191,19 @@ class QNetwork:
 
                 if (done):
                     nextState = None
-                    self.log(totalReward, game_lenght)
-                    break
                 else:
-                    nextState = self.preprocess(obs)
+                    if preprocess:
+                        nextState = self.preprocess(obs)
+                    else:
+                        nextState = torch.tensor([obs], device = device)
 
                 rew_tensor = torch.tensor([[reward]], device = device)
                 self.memory.push(currentState, action, nextState, rew_tensor)
 
+                if done:
+                    self.optimize_model()
+                    self.log(totalReward, game_lenght)
+                    break
             
                 currentState = nextState
 
@@ -204,11 +217,12 @@ class QNetwork:
         
 
 
-    def load(self):
+    def load(self, steps):
         """Load the weights."""
-        filename = self.models_dir + f'{self.steps_done}.pth'
+        filename = self.models_dir + f'{steps}.pth'
         self.policy_net = torch.load(filename) 
         self.target_net.load_state_dict(self.policy_net.state_dict())
+        self.steps_done = steps
         print('Loaded')
 
     def save(self):
@@ -216,32 +230,39 @@ class QNetwork:
         filename = self.models_dir + f'{self.steps_done}.pth'
         torch.save(self.policy_net, filename)
 
-    def evaluate(self, env, evalEpisodes = 1):
+    def evaluate(self, env, evalEpisodes = 1, test = False, preprocess = False):
 
         for e in range(evalEpisodes):
             currentObs = env.reset()
-            currentState = self.preprocess(currentObs)
+            if preprocess:
+                currentState = self.preprocess(currentObs)
+            else:
+                currentState = torch.tensor([currentObs[0]], device = device)
             done = False
 
             totalReward = 0.0
             game_lenght = 0
 
             while not done:
-                #action = self.model_action(currentState) 
-                #a = action.item()
-                a = env.action_space.sample()
-                obs, reward, done, info = env.step(a)
+                if test:
+                    action = self.model_action(currentState) 
+                    a = action.item()
+                else:
+                    a = env.action_space.sample()
+                obs, reward, done, info,_ = env.step(a)
 
                 if (done):
                     nextState = None
                 else:
-                    nextState = self.preprocess(obs)
+                    if preprocess:
+                        nextState = self.preprocess(obs)
+                    else:
+                        nextState = torch.tensor([obs], device = device)
 
                 totalReward += reward
                 game_lenght += 1
 
                 currentState = nextState
-                time.sleep(0.01)
 
             if self.verbose:
                 print(f"\nEpisodes: {e + 1}\n Game:\n\t Reward: {totalReward}\n\t Lenght: {game_lenght}")
