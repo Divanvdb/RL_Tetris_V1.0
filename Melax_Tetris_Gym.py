@@ -271,10 +271,10 @@ class BlocksEnv(gym.Env):
         self.game.load_field()
         
         #info = {}
-        extra = {}
+        #extra = {}
         
 
-        return self.observation, self.reward, self.done, info, extra
+        return self.observation, self.reward, self.done, info#, extra
 
     def reset(self):		
         
