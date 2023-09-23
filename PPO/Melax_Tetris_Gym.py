@@ -218,7 +218,7 @@ class BlocksEnv(gym.Env):
              self.counter = 0
         
         # Move the Figure down when the counter timer interval triggers or down-arrow is pressed
-        if ((self.game.state == "start") & (self.counter % 4 == 0)):
+        if ((self.game.state == "start") & (self.counter % 8 == 0)):
             self.game.go_down()
         
         #Events in the game
@@ -232,6 +232,9 @@ class BlocksEnv(gym.Env):
                 self.game.go_side(1)
             if action == 3: # SPACE
                 self.game.go_space(True)
+
+        if self.game.figure.y > 2:
+            self.game.go_space(True)
 
         if (self.game.state == 'gameover'):
             self.total_score += self.game.score	
