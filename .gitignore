@@ -4,3 +4,4 @@ models/
 __pycache__/
 Test.py
 DQN_Melax
+PlotData/

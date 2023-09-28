@@ -110,7 +110,7 @@ class CriticNetwork(nn.Module):
         self.load_state_dict(T.load(self.checkpoint_file))
 
 class Agent:
-    def __init__(self, version = 'PPO_Default', n_actions = 4, input_dims = 50, gamma=0.99, alpha=0.001, gae_lambda=0.95,
+    def __init__(self, version = 'PPO_Default', n_actions = 4, input_dims = 50, gamma=0.99, alpha=0.0001, gae_lambda=0.95,
             policy_clip=0.2, batch_size=64, n_epochs=10, max_grad_norm = 0.5, target_kl=0.01,norm_adv = False):
         self.gamma = gamma
         self.policy_clip = policy_clip
@@ -158,41 +158,45 @@ class Agent:
         self.writer.add_scalar("rollout/ep_rew_mean", total_reward, total_steps)
         self.writer.add_scalar("rollout/ep_len_mean", episode_lenght, total_steps)
 
-
     def learn(self, steps_done, logg_):
-        state_arr, action_arr, old_prob_arr, vals_arr,\
+        # state_arr, action_arr, old_prob_arr, vals_arr,\
+        #     reward_arr, dones_arr, batches = \
+        #             self.memory.generate_batches()
+            
+        # values = vals_arr
+        # returns = np.zeros(len(reward_arr), dtype=np.float32)
+
+        # for t in reversed(range(len(reward_arr)-1)):
+        #     nextnonterminal = 1.0 - dones_arr[t + 1]
+        #     next_return = returns[t + 1]
+        #     returns[t] = reward_arr[t] + self.gamma * nextnonterminal * next_return
+        # advantage_ = returns - values
+
+        # if self.norm_adv:
+        #     advantage = (advantage_ - advantage_.mean()) / (advantage_.std() + 1e-8)
+
+        # advantage = T.tensor(advantage).to(self.actor.device)
+
+        for _ in range(self.n_epochs):
+            state_arr, action_arr, old_prob_arr, vals_arr,\
             reward_arr, dones_arr, batches = \
                     self.memory.generate_batches()
             
-        values = vals_arr
-        returns = np.zeros(len(reward_arr), dtype=np.float32)
+            values = vals_arr
+            returns = np.zeros(len(reward_arr), dtype=np.float32)
 
-        for t in reversed(range(len(reward_arr)-1)):
-            nextnonterminal = 1.0 - dones_arr[t + 1]
-            next_return = returns[t + 1]
-            returns[t] = reward_arr[t] + self.gamma * nextnonterminal * next_return
-        advantage_ = returns - values
+            for t in reversed(range(len(reward_arr)-1)):
+                nextnonterminal = 1.0 - dones_arr[t + 1]
+                next_return = returns[t + 1]
+                returns[t] = reward_arr[t] + self.gamma * nextnonterminal * next_return
+            advantage_ = returns - values
 
-        if self.norm_adv:
-            advantage = (advantage_ - advantage_.mean()) / (advantage_.std() + 1e-8)
-
-        advantage = T.tensor(advantage).to(self.actor.device)
-
-        for _ in range(self.n_epochs):
-            # state_arr, action_arr, old_prob_arr, vals_arr,\
-            # reward_arr, dones_arr, batches = \
-            #         self.memory.generate_batches()
+            if self.norm_adv:
+                advantage = (advantage_ - advantage_.mean()) / (advantage_.std() + 1e-8)
+            else:
+                advantage = advantage_
             
-            # values = vals_arr
-            # returns = np.zeros(len(reward_arr), dtype=np.float32)
-
-            # for t in reversed(range(len(reward_arr)-1)):
-            #     nextnonterminal = 1.0 - dones_arr[t + 1]
-            #     next_return = returns[t + 1]
-            #     returns[t] = reward_arr[t] + self.gamma * nextnonterminal * next_return
-            # advantage = returns - values
-            
-            # advantage = T.tensor(advantage).to(self.actor.device)
+            advantage = T.tensor(advantage).to(self.actor.device)
 
             values = T.tensor(values).to(self.actor.device)
             for batch in batches:
@@ -231,9 +235,10 @@ class Agent:
                 self.actor.optimizer.step()
                 self.critic.optimizer.step()
 
-            if ((float(approx_kl) > self.target_kl) & (self.target_kl is not None)):
-                print("break")
-                break
+            if (self.target_kl is not None):
+                if (float(approx_kl) > self.target_kl):
+                    print("break")
+                    break
         if logg_:
             self.writer.add_scalar("train/value_loss", critic_loss, steps_done)
             self.writer.add_scalar("train/policy_gradient_loss", actor_loss, steps_done)

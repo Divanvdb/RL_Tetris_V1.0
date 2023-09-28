@@ -182,7 +182,7 @@ class Tetris:
             self.figure.rotation = old_rotation       
             
 # Parameters for the PyGame Render and Action Space
-N_DISCRETE_ACTIONS = 5
+N_DISCRETE_ACTIONS = 4
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 GRAY = (128, 128, 128)
@@ -202,7 +202,7 @@ class BlocksEnv(gym.Env):
 
     def __init__(self):
         super(BlocksEnv, self).__init__()
-        self.action_space = spaces.Discrete(N_DISCRETE_ACTIONS)
+        self.action_space = spaces.Box(low=np.zeros([0, 0]), high=np.ones([5, 4]), shape=(2,), dtype=np.float64)
         if self.obsFlatten:
             self.observation_space = spaces.Box(low=np.zeros(50), high=np.ones(50), shape=(50,), dtype=np.float64)
         else:
@@ -211,32 +211,12 @@ class BlocksEnv(gym.Env):
     def step(self, action):
         if self.game.figure is None:
             self.game.new_figure()
-            
-        # Increase counter and overflow
-        self.counter += 1
-        if self.counter > 100000:
-             self.counter = 0
-        
-        # Move the Figure down when the counter timer interval triggers or down-arrow is pressed
-        if ((self.game.state == "start") & (self.counter % 4 == 0)): # 
-            self.game.go_down()
-        
-        #Events in the game
 
-        if action >= 0:
-            if action == 0: # UP 
-                self.game.rotate()
-            if action == 1: # LEFT
-                self.game.go_side(-1)
-            if action == 2: # RIGHT 
-                self.game.go_side(1)
-            if action == 3: # SPACE
-                self.game.go_space(True)
-            if action == 4:
-                pass
+        self.game.figure.x = action[0]
+        self.game.figure.rotation = action[1]
 
-        # if self.game.figure.y > 2:
-        #     self.game.go_space(True)
+        if self.game.figure.y > 2:
+            self.game.go_space(True)
 
         if (self.game.state == 'gameover'):
             self.total_score += self.game.score	
@@ -365,14 +345,15 @@ class BlocksEnv(gym.Env):
                     first = False
                 if (arrGameField[j][i] == 0) & (first == False):
                     nr_holes += 1
-                    
+
+
+
+        low_col = np.zeros(self.game.width, dtype=int)
+        low_col[np.where(columns_height == np.min(columns_height))] = 1
+            # Number of Holes
+        
             # Standard Deviation
         stdDev = np.std(columns_height)
-        
-        if self.prevSTD != stdDev:
-            place = 0.1
-        else:
-            place = 0
 
         
         if (self.prev_reward < self.game.score):
@@ -384,7 +365,7 @@ class BlocksEnv(gym.Env):
         if gameover:
             game_reward = -1
         else :
-            game_reward = float(self.cleared * 10 + place - 0.001 + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 50) 
+            game_reward = float(self.cleared * 1 + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10) 
             #+ (10 - np.max(columns_height))/100# + (0.5 - 0.2/0.5 * stdDev) # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
         
         self.prevHoles = nr_holes
