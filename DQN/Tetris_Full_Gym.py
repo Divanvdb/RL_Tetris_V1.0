@@ -6,12 +6,13 @@ import random
 import time
 from datetime import datetime
 
-BLOCKS_SIZE = 2	
+BLOCKS_SIZE = 4
+# Set the colors for the game. The colors will be chosen from this array
+
 colors = [
     (0, 0, 0)
 ]
 
-# Figure Class used to generate and rotate figures
 class Figure:
     # Initial positions
     x = 0
@@ -19,10 +20,13 @@ class Figure:
     
     # Array of figures and orientations
     figures = [
-        [[0, 1], [0, 2]],
-        [[0, 1, 3], [2, 3, 1], [0, 2, 3],  [0,  1, 2]],
-        [[0, 3], [1, 2]], 
-        [[0]]]
+        [[0, 4, 8, 12], [0, 1, 2, 3]],
+        [[0, 1, 4, 8], [0, 4, 5, 6], [1, 5, 9, 8], [4, 5, 6, 10]],
+        [[0, 1, 5, 9], [4, 5, 6, 8], [0, 4, 8, 9], [2, 4, 5, 6]],  
+        [[1, 4, 5, 6], [1, 4, 5, 9], [4, 5, 6, 9], [0, 4, 5, 8]],
+        [[0, 1, 4, 5]],
+        [[0, 1, 5, 6], [1, 5, 4, 8]],
+        [[4, 5, 1, 2], [0, 4, 5, 9]]]
     
     # When called with a start x and y
     def __init__(self, x, y):
@@ -40,12 +44,11 @@ class Figure:
     # Rotate a figure
     def rotate(self):
         self.rotation = (self.rotation + 1) % len(self.figures[self.type])
-        
-# Class for the Tetris game mechanics
+    
 class Tetris:
-    level = 2 # Increase Game Speed
-    score = 0 
-    state = "start" 
+    level = 2
+    score = 0
+    state = "start"
     field = [] # Field will be the playing field of ones and zeros
     height = 0
     width = 0
@@ -73,10 +76,9 @@ class Tetris:
         intersection = False
         
         # Check all 4 possible numbers
-        # If the numbers correspond to the shape (Save computational time)
         for i in range(BLOCKS_SIZE):
             for j in range(BLOCKS_SIZE):
-                if i * BLOCKS_SIZE + j in self.figure.image(): 
+                if i * BLOCKS_SIZE + j in self.figure.image(): # If the numbers correspond to the shape (Save computational time)
                     if i + self.figure.y > self.height - 1 or \
                             j + self.figure.x > self.width - 1 or \
                             j + self.figure.x < 0 or \
@@ -84,8 +86,7 @@ class Tetris:
                         intersection = True
         return intersection
     
-    # Confirming Tetromino position and updating the game field values
-    # 'new' variable is used when a new tetromino needs to be created
+    # Setting the field values to the corresponding color
     def freeze(self, new, test):
         for i in range(BLOCKS_SIZE):
             for j in range(BLOCKS_SIZE):
@@ -123,15 +124,13 @@ class Tetris:
         
         self.score += lines ** 2
     
-    # Block Falling Mechanics
+    # For the block to fall
     def go_space(self, new):
         while not self.intersects():
             self.figure.y += 1
         self.figure.y -= 1
         self.freeze(new, False)
 
-    # Observation Space:
-    # Saving the field before freezing the falling tetromino
     def save_field(self):
         self.temp_field = []
         for i in range(self.height):
@@ -142,14 +141,12 @@ class Tetris:
         for i in range(self.height):
             for j in range(self.width):
                 self.temp_field[i][j] = self.field[i][j]
-        self.temp_x = self.figure.x 
+        self.temp_x = self.figure.x
         self.temp_y = self.figure.y
         self.temp_rot = self.figure.rotation
         self.temp_type = self.figure.type 
         self.temp_score = self.score
 
-    # Observation Space:
-    # Loading the field after observation space has been set
     def load_field(self):
         for i in range(self.height):
             for j in range(self.width):
@@ -179,15 +176,19 @@ class Tetris:
         old_rotation = self.figure.rotation
         self.figure.rotate()
         if self.intersects():
-            self.figure.rotation = old_rotation       
-            
-# Parameters for the PyGame Render and Action Space
+            self.figure.rotation = old_rotation
+
 N_DISCRETE_ACTIONS = 4
+
+
+# Define some colors
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 GRAY = (128, 128, 128)
 
-# Gym Environment Implimentation
+
+
+
 class BlocksEnv(gym.Env):
     """Custom Environment that follows gym interface"""
     rendering = False
@@ -195,7 +196,7 @@ class BlocksEnv(gym.Env):
     high_score = 0
     total_score = 0
     games = 1
-    file_path = "C:/Users/Divan van der Bank/OneDrive - Stellenbosch University/Divan Ingenieurswese 4de Jaar/Skripsie/ReinforcementLearning_Tetris/models/"
+    file_path = ""
     test2_s = False
     obsFlatten = False
     total_reward = 0
@@ -204,9 +205,9 @@ class BlocksEnv(gym.Env):
         super(BlocksEnv, self).__init__()
         self.action_space = spaces.Discrete(N_DISCRETE_ACTIONS)
         if self.obsFlatten:
-            self.observation_space = spaces.Box(low=np.zeros(50), high=np.ones(50), shape=(50,), dtype=np.float64)
+            self.observation_space = spaces.Box(low=np.zeros(200), high=np.ones(200), shape=(200,), dtype=np.float64)
         else:
-            self.observation_space = spaces.Box(low=np.zeros([10,5]), high=np.ones([10,5]), shape=(10,5), dtype=np.float64)
+            self.observation_space = spaces.Box(low=np.zeros([20,10]), high=np.ones([20,10]), shape=(20,10), dtype=np.float64)
 
     def step(self, action):
         if self.game.figure is None:
@@ -215,22 +216,22 @@ class BlocksEnv(gym.Env):
         # Increase counter and overflow
         self.counter += 1
         if self.counter > 100000:
-             self.counter = 0
+            self.counter = 0
         
         # Move the Figure down when the counter timer interval triggers or down-arrow is pressed
-        if ((self.game.state == "start") & (self.counter % 4 == 0)):
+        if ((self.game.state == "start") & (self.counter % 2 == 0)):
             self.game.go_down()
         
         #Events in the game
-
-        if action >= 0:
-            if action == 0: # UP 
+        pygame.event.get()
+        if action >= 0: # When any key on the keyboard is pressed
+            if action == 0: # When the UP arrow is pressed, rotate
                 self.game.rotate()
-            if action == 1: # LEFT
+            if action == 1: # When LEFT arrow move left
                 self.game.go_side(-1)
-            if action == 2: # RIGHT 
+            if action == 2: # When RIGHT arrow move right 
                 self.game.go_side(1)
-            if action == 3: # SPACE
+            if action == 3: # When SPACE the block falls
                 self.game.go_space(True)
 
         if (self.game.state == 'gameover'):
@@ -256,55 +257,49 @@ class BlocksEnv(gym.Env):
 
         # Will render the moves of the RL Agent
         if self.rendering:
-            pygame.event.get()
             self.render()
-
-
-        self.columns_height, holes, self.reward = self.values(np.array(self.game.field), self.done)
+            
+        
+        self.columns_height, holes, self.reward = self.values(np.array(self.game.field), self.done, self.counter)
         self.total_reward += self.reward
+        # self.observation = list(self.columns_height) + list(fig_type) + list(fig_rot) + [self.game.figure.x, self.game.figure.y]	
         self.game.save_field()
         self.game.freeze(False, self.test2_s)
         self.observation = np.array(self.game.field)
         if self.obsFlatten:
             self.observation = self.observation.flatten()
         self.game.load_field()
-        
+
         extra = {}
-        
 
         return self.observation, self.reward, self.done, info, extra
 
     def reset(self):		
         
         size = (600, 500)
-        if self.rendering:
-            pygame.init()
-            self.screen = pygame.display.set_mode(size)
-            pygame.display.set_caption("Block Falls")
-            self.clock = pygame.time.Clock()	
-            self.fps = 25
+        pygame.init()
+        self.screen = pygame.display.set_mode(size)
+        pygame.display.set_caption("Block Falls")
+        self.clock = pygame.time.Clock()	
+        self.fps = 25
 
         self.best_coord = [0,0]
 
         self.done = False
-        self.game = Tetris(10, 5)
+        self.game = Tetris(20, 10)
         for i in range(self.game.height):
             for j in range(self.game.width):
                 self.game.field[i][j] = 0
-        # self.counter = 0
-
-        self.prev_reward = 0
-        self.cleared = 0
+        self.counter = 0
+        self.greedy = False
         self.prevSTD = 0
         self.prevHoles = 0
-        self.counter = 0
-        self.total_reward = 0
+        self.prev_reward = 0
+        self.cleared = 0
 
         self.columns_height = np.zeros(self.game.width, dtype=int)
-        self.row_nr = np.zeros(self.game.height)
 
-        # self.observation = list(self.columns_height) + [0, 0, 0, 0] + [0, 0, 0, 0] + [0 ,0]
-
+        #self.observation = list(self.columns_height) + [0] + [0, 0] + [0, 0] + [0 ,0]
 
         self.observation = np.array(self.game.field)
         if self.obsFlatten:
@@ -352,7 +347,7 @@ class BlocksEnv(gym.Env):
         pygame.quit()
             
 
-    def values(self, arrGameField, gameover):
+    def values(self, arrGameField, gameover, counts):
         nr_holes = 0
 
         columns_height = np.zeros(self.game.width, dtype=int)
@@ -364,6 +359,7 @@ class BlocksEnv(gym.Env):
                     first = False
                 if (arrGameField[j][i] == 0) & (first == False):
                     nr_holes += 1
+                    
 
         low_col = np.zeros(self.game.width, dtype=int)
         low_col[np.where(columns_height == np.min(columns_height))] = 1
@@ -371,6 +367,11 @@ class BlocksEnv(gym.Env):
         
             # Standard Deviation
         stdDev = np.std(columns_height)
+
+        if self.game.figure.y > 3:
+            noDrop = 0.01
+        else:
+            noDrop = 0
 
         
         if (self.prev_reward < self.game.score):
@@ -382,10 +383,14 @@ class BlocksEnv(gym.Env):
         if gameover:
             game_reward = -1
         else :
-            game_reward =  float(self.cleared * 1 - 0.001 + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10) #+ (10 - np.max(columns_height))/100# + (0.5 - 0.2/0.5 * stdDev) # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
-            #game_reward = float(game_reward)
-        
+            game_reward = float(self.cleared * 1 - noDrop + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10)# + (0.5 - 0.2/0.5 * stdDev) # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
+            game_reward = float(game_reward)
+        # std in range [1, 3.6]
+
         self.prevHoles = nr_holes
         self.prevSTD = stdDev
-    
+
         return columns_height, nr_holes, game_reward
+
+        
+

@@ -218,7 +218,7 @@ class BlocksEnv(gym.Env):
              self.counter = 0
         
         # Move the Figure down when the counter timer interval triggers or down-arrow is pressed
-        if ((self.game.state == "start") & (self.counter % 4 == 0)):
+        if self.game.state == "start":
             self.game.go_down()
         
         #Events in the game
@@ -259,20 +259,50 @@ class BlocksEnv(gym.Env):
             pygame.event.get()
             self.render()
 
+        # Royalties - Francois van der Bank
+        
+        temp_prev_reward = self.prev_reward
+        if self.game.new_set:
+            self.game.new_set = False
+            max_reward = -10
+            self.best_coord  = [0, 0]
+            self.game.save_field()
+            for i in range(self.game.width):
+                for j in range(len(self.game.figure.figures[self.game.figure.type])):
+                    try:
+                        self.game.figure.x = i
+                        self.game.figure.rotation = j
+                        self.game.go_space(False)
+                        zz, xx, rr, bb, temp_reward = self.values(np.array(self.game.field), self.done)
+                        if temp_reward > max_reward:
+                            self.best_coord  = [i, j]
+                            max_reward = temp_reward
+                    except:
+                        xx = 0
+                    #self.render()
+                    self.game.load_field()
+                    self.prev_reward = temp_prev_reward
+            self.game.load_field()
+        info = 3
+        if(self.best_coord[0] < self.game.figure.x):
+            info = 1
+        if(self.best_coord[0] > self.game.figure.x):
+            info = 2
+        if(self.best_coord[1] != self.game.figure.rotation):
+            info = 0
 
-        self.columns_height, holes, self.reward = self.values(np.array(self.game.field), self.done)
+        self.columns_height, holes, self.row_nr, self.reward, tt = self.values(np.array(self.game.field), self.done)
         self.total_reward += self.reward
+        # self.observation = list(self.columns_height) + list(fig_type) + list(fig_rot) + [self.game.figure.x, self.game.figure.y]	
         self.game.save_field()
         self.game.freeze(False, self.test2_s)
         self.observation = np.array(self.game.field)
         if self.obsFlatten:
             self.observation = self.observation.flatten()
         self.game.load_field()
-        
-        extra = {}
-        
+       
 
-        return self.observation, self.reward, self.done, info, extra
+        return self.observation, self.reward, self.done, info
 
     def reset(self):		
         
@@ -295,10 +325,10 @@ class BlocksEnv(gym.Env):
 
         self.prev_reward = 0
         self.cleared = 0
-        self.prevSTD = 0
-        self.prevHoles = 0
         self.counter = 0
         self.total_reward = 0
+        self.preVSTD = 0
+        self.prevHoles = 0
 
         self.columns_height = np.zeros(self.game.width, dtype=int)
         self.row_nr = np.zeros(self.game.height)
@@ -365,6 +395,12 @@ class BlocksEnv(gym.Env):
                 if (arrGameField[j][i] == 0) & (first == False):
                     nr_holes += 1
 
+        row_nr = np.zeros(self.game.height, dtype=int)
+        # for i in range(arrGameField.shape[0]):
+        # 	for j in range(arrGameField.shape[1]):				
+        # 		if (arrGameField[i][j]== 1):
+        # 			row_nr[i] += arrGameField.shape[0]
+
         low_col = np.zeros(self.game.width, dtype=int)
         low_col[np.where(columns_height == np.min(columns_height))] = 1
             # Number of Holes
@@ -372,7 +408,7 @@ class BlocksEnv(gym.Env):
             # Standard Deviation
         stdDev = np.std(columns_height)
 
-        
+        best_reward = 0
         if (self.prev_reward < self.game.score):
             self.cleared = self.game.score - self.prev_reward
         else:
@@ -382,10 +418,11 @@ class BlocksEnv(gym.Env):
         if gameover:
             game_reward = -1
         else :
-            game_reward =  float(self.cleared * 1 - 0.001 + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10) #+ (10 - np.max(columns_height))/100# + (0.5 - 0.2/0.5 * stdDev) # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
-            #game_reward = float(game_reward)
-        
+            game_reward = float(self.cleared * 1 - 0.001 + (self.preVSTD - stdDev) + (self.prevHoles - nr_holes) / 10) #+ (10 - np.max(columns_height))/100# + (0.5 - 0.2/0.5 * stdDev) # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
+            best_reward = game_reward * 0.7  - stdDev * 0.4 - 0.82 * nr_holes # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
+        # std in range [1, 3.6]
+
+        self.preVSTD = stdDev
         self.prevHoles = nr_holes
-        self.prevSTD = stdDev
     
-        return columns_height, nr_holes, game_reward
+        return columns_height, nr_holes, row_nr, game_reward, best_reward

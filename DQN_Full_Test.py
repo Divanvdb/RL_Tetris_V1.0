@@ -1,23 +1,23 @@
-from DQN.Melax_Tetris_Gym import BlocksEnv
+from DQN.Tetris_Full_Gym import BlocksEnv
 from DQN.Divan_DQN import *
 import gymnasium as gym
 
-BlocksEnv.rendering = True         
+BlocksEnv.rendering = False         
 BlocksEnv.test2_s   = True          
 BlocksEnv.save_files= False         
 BlocksEnv.obsFlatten= True 
 
 #####################################
 #            Controls               #
-version_            = "DQN_RSP"   # DQN_Eps0.1
-evaluate            = True          #
-steps_done_         = 885000      # 12165000
+version_            = "DQN_Full1"   # DQN_Eps0.1
+evaluate            = False          #
+steps_done_         = 1000000      # 12165000
 #####################################
 
 env_ = BlocksEnv()
 preprocess_ = True
 
-DQN_ = QNetwork(version=version_, logging=True, decay_rate=1, start_epsilon=0, stop_epsilon=0)
+DQN_ = QNetwork(version=version_, state_size=200, logging=True, decay_rate=50_000)
 
 if evaluate:
     # env_ = gym.make("Acrobot-v1", render_mode = "human")
@@ -25,5 +25,5 @@ if evaluate:
     DQN_.evaluate(env=env_, evalEpisodes=5, test=True, preprocess=preprocess_)
 else:
     # env_ = gym.make("Acrobot-v1")
-    DQN_.train(env=env_, episodes=500_000, preprocess=preprocess_, totalsteps=1_000_000)
+    DQN_.train(env=env_, episodes=500_000, preprocess=preprocess_, totalsteps=0)
 

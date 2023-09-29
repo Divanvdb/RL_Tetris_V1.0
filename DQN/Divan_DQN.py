@@ -72,7 +72,7 @@ class QNetwork:
         self.decay_rate = decay_rate
         self.memory = ReplayMemory(memSize)
         self.models_dir = f"models/DQN/{version}/" 
-        self.writer = SummaryWriter(f"logs/{version}")
+        self.writer = SummaryWriter(f"logs/Results/{version}")
         self.hiddenLayerSize = hiddenLayerSize
         self.gamma = gamma
         self.steps_done = 0
@@ -180,7 +180,7 @@ class QNetwork:
             self.writer.add_scalar("rollout/ep_len_mean", game_lenght, self.steps_done)
             self.writer.add_scalar("rollout/exploration_rate", self.eps_threshold, self.steps_done)
 
-    def train(self, env, episodes=1, preprocess=False):
+    def train(self, env, episodes=1, preprocess=False, totalsteps = 1_000_000):
         """Trains the Neural Network for x episodes and returns the amount of steps, rewards and scores.
 
         An episode is the same as one game of tetris from start to game over
@@ -243,7 +243,10 @@ class QNetwork:
 
             if self.verbose & flag:
                 print(f"\nEpisodes: {e}\n Game:\n\t Reward: {totalReward}\n\t Lenght: {game_lenght}\n\t Epsilon: {self.eps_threshold}")
-        
+            
+            if totalsteps != 0:
+                if (self.steps_done >= totalsteps):
+                    break
 
 
     def load(self, steps):

@@ -2,7 +2,7 @@ import gymnasium as gym
 
 from stable_baselines3 import DQN
 
-from Melax_Tetris_Gym import BlocksEnv
+from DQN.Melax_Tetris_Gym import BlocksEnv
 import os
 
 ############
@@ -11,16 +11,16 @@ import os
 
 #################################
 #            Controls           #
-version             = "MLP_DQN_AFlat1"#
-training            = False     #
-new                 = False     #
+version             = "DQN_SB3"#
+training            = True     #
+new                 = True     #
 steps               = 140000     #
-BlocksEnv.rendering = True      #
+BlocksEnv.rendering = False      #
 BlocksEnv.obsFlatten= True       #
 #################################
 
 models_dir = f"models/DQN_SB3/{version}/"
-logdir = "logs"
+logdir = "logs/Results"
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
@@ -40,11 +40,11 @@ else:
     model_path = f"{models_dir}/{steps}.zip"
     model = DQN.load(model_path, env=env)
 
-TIMESTEPS = 10000
+TIMESTEPS = 1_000_000
 obs = model.env.reset()
 
 i = 0
-while True:
+for i in range(1):
     i += 1
     if training:
         model.learn(total_timesteps=TIMESTEPS,  reset_num_timesteps=False, tb_log_name=version)
