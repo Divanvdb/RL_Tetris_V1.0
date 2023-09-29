@@ -159,24 +159,6 @@ class Agent:
         self.writer.add_scalar("rollout/ep_len_mean", episode_lenght, total_steps)
 
     def learn(self, steps_done, logg_):
-        # state_arr, action_arr, old_prob_arr, vals_arr,\
-        #     reward_arr, dones_arr, batches = \
-        #             self.memory.generate_batches()
-            
-        # values = vals_arr
-        # returns = np.zeros(len(reward_arr), dtype=np.float32)
-
-        # for t in reversed(range(len(reward_arr)-1)):
-        #     nextnonterminal = 1.0 - dones_arr[t + 1]
-        #     next_return = returns[t + 1]
-        #     returns[t] = reward_arr[t] + self.gamma * nextnonterminal * next_return
-        # advantage_ = returns - values
-
-        # if self.norm_adv:
-        #     advantage = (advantage_ - advantage_.mean()) / (advantage_.std() + 1e-8)
-
-        # advantage = T.tensor(advantage).to(self.actor.device)
-
         for _ in range(self.n_epochs):
             state_arr, action_arr, old_prob_arr, vals_arr,\
             reward_arr, dones_arr, batches = \
