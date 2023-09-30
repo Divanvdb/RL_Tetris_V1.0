@@ -62,7 +62,10 @@ class DQN(nn.Module):
 
 
 class QNetwork:
-    def __init__(self, version = 'DQN_Default', numActions = 4, state_size = 50, lr=0.001, gamma = 0.90, memSize = 50000, logging = False, verbose = True, target_update = 5000, start_epsilon=1, stop_epsilon=0.1, decay_rate=300000, hiddenLayerSize = (512,256)):
+    def __init__(self, version = 'DQN_Default', numActions = 4, state_size = 50, lr=0.001, 
+                 gamma = 0.90, memSize = 50000, logging = False, verbose = True, 
+                 target_update = 5000, start_epsilon=1, stop_epsilon=0.1, decay_rate=300000, 
+                 hiddenLayerSize = (512,256)):
         super(QNetwork,self).__init__()
         self.state_size = state_size
         self.numActions = numActions

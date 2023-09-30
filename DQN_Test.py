@@ -2,16 +2,16 @@ from DQN.Melax_Tetris_Gym import BlocksEnv
 from DQN.Divan_DQN import *
 import gymnasium as gym
 
-BlocksEnv.rendering = True         
+BlocksEnv.rendering = False         
 BlocksEnv.test2_s   = True          
-BlocksEnv.save_files= False         
+BlocksEnv.save_files= True         
 BlocksEnv.obsFlatten= True 
 
 #####################################
 #            Controls               #
-version_            = "DQN_RSP"   # DQN_Eps0.1
-evaluate            = True          #
-steps_done_         = 885000      # 12165000
+version_            = "DQN_M4"   # DQN_Eps0.1
+evaluate            = False          #
+steps_done_         = 19900397      # 12165000
 #####################################
 
 env_ = BlocksEnv()

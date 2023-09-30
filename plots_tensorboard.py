@@ -2,7 +2,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-version = 'DQN_Mel'
+version = 'DQN_Eps0.1'
 
 len = pd.read_csv(f"PlotData\{version}_Len.csv")
 rew = pd.read_csv(f"PlotData\{version}_Rew.csv")

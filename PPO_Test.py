@@ -4,7 +4,7 @@ import gymnasium as gym
 
 #####################################
 #            Controls               #
-version_ = "PPO_Mel3"                #
+version_ = "PPO_Mel4"                #
 evaluate = True                    #
 logging = not evaluate
 episodes = 500_000                      #
@@ -26,9 +26,7 @@ agent = Agent(version=version_, input_dims=50, n_actions=4, alpha=0.0001, norm_a
 total_reward = 0
 game_lenght = 0
 
-i = 2100000
-
-agent.load_models()
+i = 0
 
 if evaluate:
     agent.load_models()
@@ -65,7 +63,7 @@ for e in range(episodes):
             try:
                 agent.save_models()
             except:
-                print('Save Unsuccesfull')
+                print('Save Unsuccesful')
 
     print(f"Update {e}")
     agent.learn(steps_done=i, logg_=logging)

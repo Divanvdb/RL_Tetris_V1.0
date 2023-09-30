@@ -369,9 +369,7 @@ class BlocksEnv(gym.Env):
         stdDev = np.std(columns_height)
 
         if self.game.figure.y > 3:
-            noDrop = 0.01
-        else:
-            noDrop = 0
+            self.game.go_space(True)
 
         
         if (self.prev_reward < self.game.score):
@@ -383,7 +381,7 @@ class BlocksEnv(gym.Env):
         if gameover:
             game_reward = -1
         else :
-            game_reward = float(self.cleared * 1 - noDrop + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10)# + (0.5 - 0.2/0.5 * stdDev) # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
+            game_reward = float(self.cleared * 1 + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10)# + (0.5 - 0.2/0.5 * stdDev) # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
             game_reward = float(game_reward)
         # std in range [1, 3.6]
 

@@ -140,12 +140,12 @@ def optimize_model():
 
 ################################
 #           Controls           #
-version             = "DQN_RB" #  DQN_LR0.001 -- DQN_Melax
-train               = False      #      3000        17000
-load                = True     #
-log                 = False     #
+version             = "DQN_RB1" #  DQN_LR0.001 -- DQN_Melax
+train               = True      #      3000        17000
+load                = False     #
+log                 = True     #
 steps_done          = 470061   # 13781356 -- 19895205
-render              = True    #
+render              = False    #
 test                = True     #
 save_files          = True
 BlocksEnv.obsFlatten= False    #
@@ -239,10 +239,13 @@ for e in range(evalEpisodes):
 
     while not done:
         # Select and perform an action with probability \epsilon
-        if train:
-            eps_threshold = stop_epsilon+(start_epsilon-stop_epsilon)*math.exp(-1. * steps_done / decay_rate)
+        if steps_done > 50000:
+            if train:
+                eps_threshold = stop_epsilon+(start_epsilon-stop_epsilon)*math.exp(-1. * (steps_done - 50000) / decay_rate)
+            else:
+                eps_threshold = 0
         else:
-            eps_threshold = 0
+            eps_threshold = start_epsilon
 
         action = select_action(currentState, eps_threshold, info)
         a = action.item()

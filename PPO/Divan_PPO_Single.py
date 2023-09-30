@@ -119,7 +119,7 @@ class Agent:
         self.max_grad_norm=max_grad_norm
         self.target_kl = target_kl
         self.norm_adv = norm_adv
-        self.writer = SummaryWriter(f"logs/PPO/{version}")
+        self.writer = SummaryWriter(f"logs/Results/{version}")
         models_dir = f"models/PPO/{version}/"
         if not os.path.exists(models_dir):
             os.makedirs(models_dir)
