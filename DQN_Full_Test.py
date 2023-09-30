@@ -1,17 +1,17 @@
 from DQN.Tetris_Full_Gym import BlocksEnv
-from DQN.Divan_DQN import *
+from DQN.Divan_DQN_CNN import *
 import gymnasium as gym
 
-BlocksEnv.rendering = True         
+BlocksEnv.rendering = False         
 BlocksEnv.test2_s   = True          
 BlocksEnv.save_files= False         
-BlocksEnv.obsFlatten= True 
+BlocksEnv.obsFlatten= False 
 
 #####################################
 #            Controls               #
-version_            = "DQN_Full2"   # 
-evaluate            = True          #
-steps_done_         = 11000000      # 
+version_            = "DQN_CNN"   # 
+evaluate            = False          #
+steps_done_         = "model"      # 
 #####################################
 
 env_ = BlocksEnv()

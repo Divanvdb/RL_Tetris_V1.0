@@ -40,22 +40,37 @@ class ReplayMemory(object):
 #####################################
 
 ### Neural network model definition
-class DQN(nn.Module):
+class CNN_DQN(nn.Module):
 
-    def __init__(self, alpha, inputSize, numActions, hiddenLayerSize=(512, 256)):
-        super(DQN, self).__init__()
-        self.fc1 = nn.Linear(inputSize, hiddenLayerSize[0])
-        self.fc2 = nn.Linear(hiddenLayerSize[0], hiddenLayerSize[1])
-        self.fc3 = nn.Linear(hiddenLayerSize[1], numActions)
-        self.optimizer = optim.Adam(self.parameters(), lr=alpha)
+    def __init__(self, height, width, numActions, hiddenLayerSize=(512,)): 
+        super(CNN_DQN, self).__init__()     
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=4, stride=1)
+        self.bn1 = nn.BatchNorm2d(16)
+        
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=4, stride=1)
+        self.bn2 = nn.BatchNorm2d(32)
+
+        def conv2d_size_out(size, kernel_size = 4, stride = 1):
+            return (size - (kernel_size - 1) - 1) // stride  + 1
+        convw = conv2d_size_out(conv2d_size_out(width))
+        convh = conv2d_size_out(conv2d_size_out(height))
+        linear_input_size = convw * convh * 32
+        
+        self.head = nn.Linear(linear_input_size, hiddenLayerSize[0])
+        self.fc1 = nn.Linear(hiddenLayerSize[0], numActions)
+
+        self.optimizer = optim.Adam(self.parameters(), lr=0.001)
         self.criterion = nn.MSELoss()
-
-
+        
+    # Called with either one element to determine next action, or a batch
+    # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, x):
         x = x.to(device)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+
+        x = F.relu(self.head(x.view(x.size(0), -1)))
+        x = self.fc1(x)
         return x
 
 
@@ -86,9 +101,15 @@ class QNetwork:
 
 
     def _create_model(self):
-        self.policy_net = DQN(self.lr, self.state_size, self.numActions, self.hiddenLayerSize)
-        self.target_net = DQN(self.lr, self.state_size, self.numActions, self.hiddenLayerSize)
+        # Instantiate the policy network and the target network
+        hiddenLayerSize = (128,)
+        self.policy_net = CNN_DQN(20, 10, 4, hiddenLayerSize)
+        self.target_net = CNN_DQN(20, 10, 4, hiddenLayerSize)
+
+        # Copy the weights of the policy network to the target network
         self.target_net.load_state_dict(self.policy_net.state_dict())
+
+        # We don't want to update the parameters of the target network so we set it to evaluation mode
         self.target_net.eval()
 
     ''' Preprocessing steps: Flatten and ToTensor
@@ -151,6 +172,7 @@ class QNetwork:
 
         state_batch = torch.cat(batch.currentState)
         action_batch = torch.cat(batch.action)
+        state_batch = torch.reshape(state_batch, [batch_size, 1, 20, 10])
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
 
         reward_batch = torch.cat(batch.reward)
@@ -161,6 +183,7 @@ class QNetwork:
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                                 batch.nextState)), device=device, dtype=torch.bool)
 
+        non_final_next_states = torch.reshape(non_final_next_states, [non_final_next_states.shape[0], 1, 20, 10])
         next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0].detach()
         next_state_values = torch.reshape(next_state_values, (batch_size, 1))
         TDtargets = (next_state_values * self.gamma) + reward_batch
@@ -210,6 +233,7 @@ class QNetwork:
             flag = False
             
             while not done:
+                currentState = torch.reshape(currentState, [1, 1, 20, 10])
                 action = self.select_action(currentState) 
                 a = action.item()
 
