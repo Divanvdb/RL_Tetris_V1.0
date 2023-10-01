@@ -4,11 +4,11 @@ import gymnasium as gym
 
 #####################################
 #            Controls               #
-version_ = "PPO_Mel4"                #
-evaluate = True                    #
+version_ = "PPO_Test6"                #
+evaluate = False                    #
 logging = not evaluate
 episodes = 500_000                      #
-time_steps = 2024
+time_steps = 1024
 steps_done_ = 5085855               #
 #####################################
 
@@ -21,7 +21,7 @@ env = BlocksEnv()
 # if evaluate:
 #     env = gym.make('CartPole-v1', render_mode = 'human')
 
-agent = Agent(version=version_, input_dims=50, n_actions=4, alpha=0.0001, norm_adv=False, target_kl=None)
+agent = Agent(version=version_, input_dims=50, n_actions=4, alpha=0.0001, hidden_size=[512,256])
 
 total_reward = 0
 game_lenght = 0

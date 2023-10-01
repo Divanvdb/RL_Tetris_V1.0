@@ -50,17 +50,17 @@ class PPOMemory:
 
 class ActorNetwork(nn.Module):
     def __init__(self, vers, n_actions, input_dims, alpha,
-            fc1_dims=256, fc2_dims=256, chkpt_dir=f'models/PPO/'):
+            hidden_size = [512,256], chkpt_dir=f'models/PPO/'):
         super(ActorNetwork, self).__init__()
 
 
         self.checkpoint_file = os.path.join(chkpt_dir, f'{vers}/actor_torch_ppo')
         self.actor = nn.Sequential(
-                nn.Linear(input_dims, fc1_dims),
+                nn.Linear(input_dims, hidden_size[0]),
                 nn.ReLU(),
-                nn.Linear(fc1_dims, fc2_dims),
+                nn.Linear(hidden_size[0], hidden_size[1]),
                 nn.ReLU(),
-                nn.Linear(fc2_dims, n_actions),
+                nn.Linear(hidden_size[1], n_actions),
                 nn.Softmax(dim=-1)
         )
 
@@ -81,17 +81,17 @@ class ActorNetwork(nn.Module):
         self.load_state_dict(T.load(self.checkpoint_file))
 
 class CriticNetwork(nn.Module):
-    def __init__(self, vers, input_dims, alpha, fc1_dims=256, fc2_dims=256,
+    def __init__(self, vers, input_dims, alpha, hidden_size = [512,256],
             chkpt_dir='models/PPO'):
         super(CriticNetwork, self).__init__()
 
         self.checkpoint_file = os.path.join(chkpt_dir, f'{vers}/critic_torch_ppo')
         self.critic = nn.Sequential(
-                nn.Linear(input_dims, fc1_dims),
+                nn.Linear(input_dims, hidden_size[0]),
                 nn.ReLU(),
-                nn.Linear(fc1_dims, fc2_dims),
+                nn.Linear(hidden_size[0], hidden_size[1]),
                 nn.ReLU(),
-                nn.Linear(fc2_dims, 1)
+                nn.Linear(hidden_size[1], 1)
         )
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
@@ -111,21 +111,20 @@ class CriticNetwork(nn.Module):
 
 class Agent:
     def __init__(self, version = 'PPO_Default', n_actions = 4, input_dims = 50, gamma=0.99, alpha=0.0001, gae_lambda=0.95,
-            policy_clip=0.2, batch_size=64, n_epochs=10, max_grad_norm = 0.5, target_kl=0.01,norm_adv = False):
+            policy_clip=0.2, batch_size=64, n_epochs=10, max_grad_norm = 0.5, hidden_size = [512,256]):
         self.gamma = gamma
         self.policy_clip = policy_clip
         self.n_epochs = n_epochs
         self.gae_lambda = gae_lambda
         self.max_grad_norm=max_grad_norm
-        self.target_kl = target_kl
-        self.norm_adv = norm_adv
-        self.writer = SummaryWriter(f"logs/Results/{version}")
+        self.hidden_size = hidden_size
+        self.writer = SummaryWriter(f"logs/PPO/{version}")
         models_dir = f"models/PPO/{version}/"
         if not os.path.exists(models_dir):
             os.makedirs(models_dir)
 
-        self.actor = ActorNetwork(vers=version, n_actions=n_actions, input_dims=input_dims, alpha=alpha)
-        self.critic = CriticNetwork(vers= version, input_dims=input_dims, alpha=alpha)
+        self.actor = ActorNetwork(vers=version, n_actions=n_actions, input_dims=input_dims, alpha=alpha, hidden_size=self.hidden_size)
+        self.critic = CriticNetwork(vers= version, input_dims=input_dims, alpha=alpha, hidden_size=self.hidden_size)
         self.memory = PPOMemory(batch_size)
        
     def remember(self, state, action, probs, vals, reward, done):
@@ -171,12 +170,8 @@ class Agent:
                 nextnonterminal = 1.0 - dones_arr[t + 1]
                 next_return = returns[t + 1]
                 returns[t] = reward_arr[t] + self.gamma * nextnonterminal * next_return
-            advantage_ = returns - values
+            advantage = returns - values
 
-            if self.norm_adv:
-                advantage = (advantage_ - advantage_.mean()) / (advantage_.std() + 1e-8)
-            else:
-                advantage = advantage_
             
             advantage = T.tensor(advantage).to(self.actor.device)
 
@@ -193,10 +188,9 @@ class Agent:
 
                 new_probs = dist.log_prob(actions)
                 entropy = dist.entropy()
-                logratio = new_probs / old_probs
+                
                 prob_ratio = new_probs.exp() / old_probs.exp()
 
-                approx_kl = (prob_ratio - logratio).mean()
                 #prob_ratio = (new_probs - old_probs).exp()
                 weighted_probs = advantage[batch] * prob_ratio
                 weighted_clipped_probs = T.clamp(prob_ratio, 1-self.policy_clip,
@@ -217,15 +211,10 @@ class Agent:
                 self.actor.optimizer.step()
                 self.critic.optimizer.step()
 
-            if (self.target_kl is not None):
-                if (float(approx_kl) > self.target_kl):
-                    print("break")
-                    break
         if logg_:
             self.writer.add_scalar("train/value_loss", critic_loss, steps_done)
             self.writer.add_scalar("train/policy_gradient_loss", actor_loss, steps_done)
             self.writer.add_scalar("train/loss", total_loss, steps_done)
             self.writer.add_scalar("train/entropy_loss", entropy_loss, steps_done)
-            self.writer.add_scalar("train/approx_kl", approx_kl, steps_done)
 
         self.memory.clear_memory()               

@@ -371,6 +371,9 @@ class BlocksEnv(gym.Env):
         if self.game.figure.y > 3:
             self.game.go_space(True)
 
+        if np.max(columns_height) >= 6:
+            self.game.state = 'gameover'
+
         
         if (self.prev_reward < self.game.score):
             self.cleared = self.game.score - self.prev_reward

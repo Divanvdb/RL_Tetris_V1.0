@@ -384,7 +384,7 @@ class BlocksEnv(gym.Env):
         if gameover:
             game_reward = -1
         else :
-            game_reward = float(self.cleared * 10 + place - 0.001 + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 50) 
+            game_reward = float(self.cleared * 10 - 0.01 + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 50) 
             #+ (10 - np.max(columns_height))/100# + (0.5 - 0.2/0.5 * stdDev) # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
         
         self.prevHoles = nr_holes

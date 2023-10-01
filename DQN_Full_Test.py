@@ -9,7 +9,7 @@ BlocksEnv.obsFlatten= False
 
 #####################################
 #            Controls               #
-version_            = "DQN_CNN"   # 
+version_            = "DQN_CNN4"   # 
 evaluate            = False          #
 steps_done_         = "model"      # 
 #####################################
@@ -17,7 +17,7 @@ steps_done_         = "model"      #
 env_ = BlocksEnv()
 preprocess_ = True
 
-DQN_ = QNetwork(version=version_, state_size=200, logging=True, decay_rate=50_000)
+DQN_ = QNetwork(version=version_, state_size=200, logging=True, decay_rate=100_000)
 
 if evaluate:
     # env_ = gym.make("Acrobot-v1", render_mode = "human")

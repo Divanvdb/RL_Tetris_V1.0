@@ -42,24 +42,24 @@ class ReplayMemory(object):
 ### Neural network model definition
 class CNN_DQN(nn.Module):
 
-    def __init__(self, height, width, numActions, hiddenLayerSize=(512,)): 
+    def __init__(self, height, width, numActions, hiddenLayerSize=(256,), alpha = 0.0005): 
         super(CNN_DQN, self).__init__()     
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=4, stride=1)
-        self.bn1 = nn.BatchNorm2d(16)
+        self.conv1 = nn.Conv2d(1, 4, kernel_size=4, stride=1)
+        self.bn1 = nn.BatchNorm2d(4)
         
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=4, stride=1)
-        self.bn2 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(4, 16, kernel_size=4, stride=1)
+        self.bn2 = nn.BatchNorm2d(16)
 
         def conv2d_size_out(size, kernel_size = 4, stride = 1):
             return (size - (kernel_size - 1) - 1) // stride  + 1
         convw = conv2d_size_out(conv2d_size_out(width))
         convh = conv2d_size_out(conv2d_size_out(height))
-        linear_input_size = convw * convh * 32
+        linear_input_size = convw * convh * 16
         
         self.head = nn.Linear(linear_input_size, hiddenLayerSize[0])
         self.fc1 = nn.Linear(hiddenLayerSize[0], numActions)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.parameters(), lr=alpha)
         self.criterion = nn.MSELoss()
         
     # Called with either one element to determine next action, or a batch
@@ -75,7 +75,7 @@ class CNN_DQN(nn.Module):
 
 
 class QNetwork:
-    def __init__(self, version = 'DQN_Default', numActions = 4, state_size = 50, lr=0.001, 
+    def __init__(self, version = 'DQN_Default', numActions = 4, state_size = 50, lr=0.0001, 
                  gamma = 0.90, memSize = 50000, logging = False, verbose = True, 
                  target_update = 5000, start_epsilon=1, stop_epsilon=0.1, decay_rate=300000, 
                  hiddenLayerSize = (512,256)):
@@ -103,8 +103,8 @@ class QNetwork:
     def _create_model(self):
         # Instantiate the policy network and the target network
         hiddenLayerSize = (128,)
-        self.policy_net = CNN_DQN(20, 10, 4, hiddenLayerSize)
-        self.target_net = CNN_DQN(20, 10, 4, hiddenLayerSize)
+        self.policy_net = CNN_DQN(20, 10, 4, hiddenLayerSize, self.lr)
+        self.target_net = CNN_DQN(20, 10, 4, hiddenLayerSize, self.lr)
 
         # Copy the weights of the policy network to the target network
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -284,12 +284,13 @@ class QNetwork:
 
     def save(self):
         """Save the weights."""
-        filename = self.models_dir + f'{self.steps_done}.pth'
+        filename = self.models_dir + 'model.pth'
         torch.save(self.policy_net, filename)
 
     def evaluate(self, env, evalEpisodes = 1, test = False, preprocess = False):
 
         for e in range(evalEpisodes):
+            
             currentObs = env.reset()
             if preprocess:
                 currentState = self.preprocess(currentObs)
@@ -301,6 +302,7 @@ class QNetwork:
             game_lenght = 0
 
             while not done:
+                currentState = torch.reshape(currentState, [1, 1, 20, 10])
                 if test:
                     action = self.model_action(currentState) 
                     a = action.item()
