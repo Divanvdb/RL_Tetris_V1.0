@@ -1,23 +1,24 @@
 from DQN.Tetris_Full_Gym import BlocksEnv
-from DQN.Divan_DQN_CNN import *
+from DQN.Divan_DQN import *
 import gymnasium as gym
 
-BlocksEnv.rendering = False         
+BlocksEnv.rendering = True         
 BlocksEnv.test2_s   = True          
 BlocksEnv.save_files= False         
-BlocksEnv.obsFlatten= False 
+BlocksEnv.obsFlatten= True 
 
 #####################################
 #            Controls               #
-version_            = "DQN_CNN4"   # 
-evaluate            = False          #
-steps_done_         = "model"      # 
+version_            = "DQN_FT_H3_0"   # 
+evaluate            = True          #
+steps_done_         = "345000"      # 
 #####################################
 
 env_ = BlocksEnv()
 preprocess_ = True
 
-DQN_ = QNetwork(version=version_, state_size=200, logging=True, decay_rate=100_000)
+DQN_ = QNetwork(version=version_, state_size=200, logging=True, 
+                lr=0.0001, decay_rate=100_000, stop_epsilon=0.2, hiddenLayerSize=[512,256])
 
 if evaluate:
     # env_ = gym.make("Acrobot-v1", render_mode = "human")

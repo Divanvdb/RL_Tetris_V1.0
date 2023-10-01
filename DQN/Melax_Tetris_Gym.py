@@ -195,7 +195,7 @@ class BlocksEnv(gym.Env):
     high_score = 0
     total_score = 0
     games = 1
-    file_path = "C:/Users/Divan van der Bank/OneDrive - Stellenbosch University/Divan Ingenieurswese 4de Jaar/Skripsie/ReinforcementLearning_Tetris/models/"
+    file_path = "C:/Users/Divan van der Bank/OneDrive - Stellenbosch University/Divan Ingenieurswese 4de Jaar/Skripsie/Rl_Tetris_V1.0/Melax.txt"
     test2_s = False
     obsFlatten = False
     total_reward = 0

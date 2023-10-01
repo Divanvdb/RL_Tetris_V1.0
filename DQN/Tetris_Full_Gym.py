@@ -32,7 +32,7 @@ class Figure:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.type = random.randint(0, len(self.figures) - 1)
+        self.type = 4 # random.randint(0, len(self.figures) - 1)
         self.color = 1
         self.rotation = random.randint(0, len(self.figures[self.type]) - 1)
         
