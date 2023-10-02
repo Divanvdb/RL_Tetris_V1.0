@@ -63,7 +63,7 @@ class QNetwork:
     def __init__(self, version = 'DQN_Default', numActions = 4, state_size = 50, lr=0.001, 
                  gamma = 0.90, memSize = 50000, logging = False, verbose = True, 
                  target_update = 5000, start_epsilon=1, stop_epsilon=0.1, decay_rate=300000, 
-                 hiddenLayerSize = (512,256)):
+                 hiddenLayerSize = (512,256), steps_done = 0):
         super(QNetwork,self).__init__()
         self.state_size = state_size
         self.numActions = numActions
@@ -73,10 +73,10 @@ class QNetwork:
         self.decay_rate = decay_rate
         self.memory = ReplayMemory(memSize)
         self.models_dir = f"models/DQN/{version}/" 
-        self.writer = SummaryWriter(f"logs/PPO/{version}")
+        self.writer = SummaryWriter(f"logs/DQN_Melax/{version}")
         self.hiddenLayerSize = hiddenLayerSize
         self.gamma = gamma
-        self.steps_done = 0
+        self.steps_done = steps_done
         self.target_update = target_update
         self.verbose = verbose
         self.logging = logging
@@ -181,7 +181,7 @@ class QNetwork:
             self.writer.add_scalar("rollout/ep_len_mean", game_lenght, self.steps_done)
             self.writer.add_scalar("rollout/exploration_rate", self.eps_threshold, self.steps_done)
 
-    def train(self, env, episodes=1, preprocess=False, totalsteps = 1_000_000):
+    def train(self, env, episodes=1, preprocess=False, totalsteps = 1_000_000, epochs = 10):
         """Trains the Neural Network for x episodes and returns the amount of steps, rewards and scores.
 
         An episode is the same as one game of tetris from start to game over
@@ -227,12 +227,14 @@ class QNetwork:
                     else:
                         nextState = torch.tensor([obs], device = device)
 
+                #if reward != 0.001:
                 rew_tensor = torch.tensor([[reward]], device = device)
                 self.memory.push(currentState, action, nextState, rew_tensor)
 
                 if done:
-                    self.optimize_model()
-                    self.log(totalReward, game_lenght)
+                    for _ in range(epochs):
+                        self.optimize_model()
+                        self.log(totalReward, game_lenght)
                     break
             
                 currentState = nextState
