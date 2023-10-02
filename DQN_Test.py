@@ -2,9 +2,9 @@ from DQN.Melax_Tetris_Gym import BlocksEnv
 from DQN.Divan_DQN import *
 import gymnasium as gym
 
-BlocksEnv.rendering = False         
+BlocksEnv.rendering = True         
 BlocksEnv.test2_s   = True          
-BlocksEnv.save_files= True         
+BlocksEnv.save_files= False         
 BlocksEnv.obsFlatten= True 
 
 #####################################
