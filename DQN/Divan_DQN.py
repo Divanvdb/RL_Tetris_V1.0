@@ -73,7 +73,7 @@ class QNetwork:
         self.decay_rate = decay_rate
         self.memory = ReplayMemory(memSize)
         self.models_dir = f"models/DQN/{version}/" 
-        self.writer = SummaryWriter(f"logs/DQN_Melax/{version}")
+        self.writer = SummaryWriter(f"logs/CNN/{version}")
         self.hiddenLayerSize = hiddenLayerSize
         self.gamma = gamma
         self.steps_done = steps_done

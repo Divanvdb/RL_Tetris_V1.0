@@ -32,7 +32,7 @@ class Figure:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.type = 4 # random.randint(0, len(self.figures) - 1)
+        self.type = random.randint(0, len(self.figures) - 1)
         self.color = 1
         self.rotation = random.randint(0, len(self.figures[self.type]) - 1)
         
@@ -69,7 +69,7 @@ class Tetris:
             self.field.append(new_line)
     
     def new_figure(self):
-        self.figure = Figure(1, 0)
+        self.figure = Figure(3, 0)
         self.new_set = True
     
     def intersects(self):
@@ -209,14 +209,18 @@ class BlocksEnv(gym.Env):
         else:
             self.observation_space = spaces.Box(low=np.zeros([20,10]), high=np.ones([20,10]), shape=(20,10), dtype=np.float64)
 
-    def step(self, action):
+    def step(self, action, final = True):
         if self.game.figure is None:
             self.game.new_figure()
+
+        if not final:
+            self.game.save_field()
             
         # Increase counter and overflow
-        self.counter += 1
-        if self.counter > 100000:
-            self.counter = 0
+        if final:
+            self.counter += 1
+            if self.counter > 100000:
+                self.counter = 0
         
         # Move the Figure down when the counter timer interval triggers or down-arrow is pressed
         if ((self.game.state == "start") & (self.counter % 2 == 0)):
@@ -232,9 +236,9 @@ class BlocksEnv(gym.Env):
             if action == 2: # When RIGHT arrow move right 
                 self.game.go_side(1)
             if action == 3: # When SPACE the block falls
-                self.game.go_space(True)
+                self.game.go_space(final)
 
-        if (self.game.state == 'gameover'):
+        if ((self.game.state == 'gameover') & (final == True)):
             self.total_score += self.game.score	
             info = {"r": self.total_reward, "l": self.counter, "d" : True}		
             
@@ -256,14 +260,16 @@ class BlocksEnv(gym.Env):
             info = {"r": 0, "l": 0, "d" : False}	
 
         # Will render the moves of the RL Agent
-        if self.rendering:
+        if ((self.rendering) & (final == True)): #& (final == True)
             self.render()
             
         
-        self.columns_height, holes, self.reward = self.values(np.array(self.game.field), self.done, self.counter)
+        self.columns_height, holes, self.reward = self.values(np.array(self.game.field), self.done, final, action)
         self.total_reward += self.reward
         # self.observation = list(self.columns_height) + list(fig_type) + list(fig_rot) + [self.game.figure.x, self.game.figure.y]	
-        self.game.save_field()
+        
+        if final:
+            self.game.save_field()
         self.game.freeze(False, self.test2_s)
         self.observation = np.array(self.game.field)
         if self.obsFlatten:
@@ -345,9 +351,8 @@ class BlocksEnv(gym.Env):
     def close(self):
         pygame.display.quit()
         pygame.quit()
-            
 
-    def values(self, arrGameField, gameover, counts):
+    def values(self, arrGameField, gameover, final, action):
         nr_holes = 0
 
         columns_height = np.zeros(self.game.width, dtype=int)
@@ -371,7 +376,7 @@ class BlocksEnv(gym.Env):
         if self.game.figure.y > 3:
             self.game.go_space(True)
 
-        if np.max(columns_height) >= 6:
+        if ((np.max(columns_height) >= 6)):
             self.game.state = 'gameover'
 
         
@@ -381,15 +386,20 @@ class BlocksEnv(gym.Env):
             self.cleared = 0
         self.prev_reward = self.game.score
 
-        if gameover:
-            game_reward = -1
-        else :
-            game_reward = float(self.cleared * 1 + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10)# + (0.5 - 0.2/0.5 * stdDev) # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
-            game_reward = float(game_reward)
-        # std in range [1, 3.6]
+        # if action == 0:
+        #     x = 0.001
+        # else:
+        #     x = 0.002
 
-        self.prevHoles = nr_holes
-        self.prevSTD = stdDev
+        if gameover:
+            game_reward = -10
+        else :
+            game_reward = float(self.cleared * 1 - 0.001 + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes)*0.5)# + (0.5 - 0.2/0.5 * stdDev) # + 0.01 #- 0.005 * stdDev - 0.001 * np.sum(columns_height) - 0.001 * nr_holes
+            # game_reward = float(game_reward)
+        # std in range [1, 3.6]
+        if final:
+            self.prevHoles = nr_holes
+            self.prevSTD = stdDev
 
         return columns_height, nr_holes, game_reward
 

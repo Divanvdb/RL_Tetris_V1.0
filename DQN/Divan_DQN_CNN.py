@@ -44,11 +44,11 @@ class CNN_DQN(nn.Module):
 
     def __init__(self, height, width, numActions, hiddenLayerSize=(256,), alpha = 0.0005): 
         super(CNN_DQN, self).__init__()     
-        self.conv1 = nn.Conv2d(1, 4, kernel_size=4, stride=1)
-        self.bn1 = nn.BatchNorm2d(4)
+        self.conv1 = nn.Conv2d(4, 16, kernel_size=4, stride=1)
+        self.bn1 = nn.BatchNorm2d(16)
         
-        self.conv2 = nn.Conv2d(4, 16, kernel_size=4, stride=1)
-        self.bn2 = nn.BatchNorm2d(16)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=4, stride=1)
+        self.bn2 = nn.BatchNorm2d(32)
 
         def conv2d_size_out(size, kernel_size = 4, stride = 1):
             return (size - (kernel_size - 1) - 1) // stride  + 1
@@ -56,7 +56,7 @@ class CNN_DQN(nn.Module):
         convh = conv2d_size_out(conv2d_size_out(height))
         linear_input_size = convw * convh * 16
         
-        self.head = nn.Linear(linear_input_size, hiddenLayerSize[0])
+        self.head = nn.Linear(1792, hiddenLayerSize[0])
         self.fc1 = nn.Linear(hiddenLayerSize[0], numActions)
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
@@ -78,7 +78,7 @@ class QNetwork:
     def __init__(self, version = 'DQN_Default', numActions = 4, state_size = 50, lr=0.0001, 
                  gamma = 0.90, memSize = 50000, logging = False, verbose = True, 
                  target_update = 5000, start_epsilon=1, stop_epsilon=0.1, decay_rate=300000, 
-                 hiddenLayerSize = (512,256)):
+                 hiddenLayerSize = (512, ), screen_size = [20,10]):
         super(QNetwork,self).__init__()
         self.state_size = state_size
         self.numActions = numActions
@@ -87,22 +87,48 @@ class QNetwork:
         self.stop_epsilon = stop_epsilon
         self.decay_rate = decay_rate
         self.memory = ReplayMemory(memSize)
-        self.models_dir = f"models/DQN/{version}/" 
-        self.writer = SummaryWriter(f"logs/Results/{version}")
+        self.models_dir = f"models/DQN_CNN/{version}/" 
+        if logging:
+            self.writer = SummaryWriter(f"logs/CNN/{version}")
         self.hiddenLayerSize = hiddenLayerSize
         self.gamma = gamma
         self.steps_done = 0
         self.target_update = target_update
         self.verbose = verbose
         self.logging = logging
+        self.stack_size = 4
+        self.eps_threshold = 1
+        self.screensize = screen_size
         if not os.path.exists(self.models_dir):
             os.makedirs(self.models_dir)
         self._create_model()
+        self.stacked_frames = deque([np.zeros((self.screensize[0],self.screensize[1]), dtype=np.int32) for i in range(self.stack_size)], maxlen=self.stack_size) 
+
+    def stack_frames(self, stacked_frames, state, is_new_episode, pop_):
+        
+        frame = state
+    
+        if is_new_episode:
+            stacked_frames = deque([np.zeros((self.screensize[0],self.screensize[1]), dtype=np.int32) for i in range(self.stack_size)], maxlen=self.stack_size)
+                
+            for i in range(self.stack_size):
+                stacked_frames.append(frame)
+                
+            stacked_state = torch.from_numpy(np.stack(stacked_frames, axis=0)).float().unsqueeze(0)
+                
+        else:
+            if pop_:
+                stacked_frames.pop
+            stacked_frames.append(frame)
+
+            stacked_state = torch.from_numpy(np.stack(stacked_frames, axis=0)).float().unsqueeze(0)
+            
+        return stacked_state, stacked_frames
 
 
     def _create_model(self):
         # Instantiate the policy network and the target network
-        hiddenLayerSize = (128,)
+        hiddenLayerSize = self.hiddenLayerSize
         self.policy_net = CNN_DQN(20, 10, 4, hiddenLayerSize, self.lr)
         self.target_net = CNN_DQN(20, 10, 4, hiddenLayerSize, self.lr)
 
@@ -140,6 +166,9 @@ class QNetwork:
             return self.model_action(state)
         else:
             return torch.tensor([[random.randrange(self.numActions)]], device=device, dtype=torch.long)
+            
+    
+        
         
     ''' Model Action:
 
@@ -172,7 +201,6 @@ class QNetwork:
 
         state_batch = torch.cat(batch.currentState)
         action_batch = torch.cat(batch.action)
-        state_batch = torch.reshape(state_batch, [batch_size, 1, 20, 10])
         state_action_values = self.policy_net(state_batch).gather(1, action_batch)
 
         reward_batch = torch.cat(batch.reward)
@@ -183,7 +211,6 @@ class QNetwork:
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                                 batch.nextState)), device=device, dtype=torch.bool)
 
-        non_final_next_states = torch.reshape(non_final_next_states, [non_final_next_states.shape[0], 1, 20, 10])
         next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0].detach()
         next_state_values = torch.reshape(next_state_values, (batch_size, 1))
         TDtargets = (next_state_values * self.gamma) + reward_batch
@@ -204,7 +231,7 @@ class QNetwork:
             self.writer.add_scalar("rollout/ep_len_mean", game_lenght, self.steps_done)
             self.writer.add_scalar("rollout/exploration_rate", self.eps_threshold, self.steps_done)
 
-    def train(self, env, episodes=1, preprocess=False, totalsteps = 1_000_000):
+    def train(self, env, episodes=1, preprocess=False, totalsteps = 1_000_000, model_test = False, best = False, rule = False):
         """Trains the Neural Network for x episodes and returns the amount of steps, rewards and scores.
 
         An episode is the same as one game of tetris from start to game over
@@ -219,13 +246,11 @@ class QNetwork:
 
         if episodes == 0:
             episodes = 500_000  
+        
 
         for e in range(episodes):
             currentObs = env.reset()
-            if preprocess:
-                currentState = self.preprocess(currentObs)
-            else:
-                currentState = torch.tensor([currentObs[0]], device = device)
+            currentState, stacked_frames = self.stack_frames(self.stacked_frames, currentObs, True, False)
 
             done = False
             game_lenght = 0
@@ -233,11 +258,30 @@ class QNetwork:
             flag = False
             
             while not done:
-                currentState = torch.reshape(currentState, [1, 1, 20, 10])
-                action = self.select_action(currentState) 
-                a = action.item()
+                if model_test:
+                    rewards = np.zeros(4)
+                    for i in range(4):
+                        a_ = torch.tensor([[i]], device=device, dtype=torch.long)
+                        obs_, reward_, done_, _, _ = env.step(a_, False)
+                        if (done_):
+                            nextState_ = None
+                        else:
+                            nextState_, stacked_frames = self.stack_frames(self.stacked_frames, obs_, False, True)
+                        rewards[i] = reward_
+                        rew_tensor_ = torch.tensor([[reward_]], device = device)
+                        self.memory.push(currentState, a_, nextState_, rew_tensor_)
+                        
+                if not best:
+                    action = self.select_action(currentState) 
+                    a = action.item()
+                else:
+                    if rewards[0] == rewards[1]:
+                        action = torch.tensor([[random.randrange(self.numActions)]], device=device, dtype=torch.long)
+                    else:
+                        action = np.argmax(rewards)
+                    a = torch.tensor([[action]], device = device)
 
-                obs, reward, done, _, _ = env.step(a)
+                obs, reward, done, _, _ = env.step(a, True)
 
                 game_lenght += 1
                 self.steps_done += 1
@@ -246,10 +290,7 @@ class QNetwork:
                 if (done):
                     nextState = None
                 else:
-                    if preprocess:
-                        nextState = self.preprocess(obs)
-                    else:
-                        nextState = torch.tensor([obs], device = device)
+                    nextState, stacked_frames = self.stack_frames(self.stacked_frames, obs, False, False)
 
                 rew_tensor = torch.tensor([[reward]], device = device)
                 self.memory.push(currentState, action, nextState, rew_tensor)
@@ -263,8 +304,9 @@ class QNetwork:
 
                 if (self.steps_done % self.target_update == 0):
                     self.target_net.load_state_dict(self.policy_net.state_dict())
-                    self.save()
+                    self.save(self.steps_done)
                     flag = True
+                
 
             if self.verbose & flag:
                 print(f"\nEpisodes: {e}\n Game:\n\t Reward: {totalReward}\n\t Lenght: {game_lenght}\n\t Epsilon: {self.eps_threshold}")
@@ -282,27 +324,22 @@ class QNetwork:
         self.steps_done = steps
         print('Loaded')
 
-    def save(self):
+    def save(self, steps):
         """Save the weights."""
         filename = self.models_dir + 'model.pth'
         torch.save(self.policy_net, filename)
 
-    def evaluate(self, env, evalEpisodes = 1, test = False, preprocess = False):
+    def evaluate(self, env, evalEpisodes = 1, test = False):
 
         for e in range(evalEpisodes):
-            
             currentObs = env.reset()
-            if preprocess:
-                currentState = self.preprocess(currentObs)
-            else:
-                currentState = torch.tensor([currentObs[0]], device = device)
-            done = False
+            currentState, stacked_frames = self.stack_frames(self.stacked_frames, currentObs, False, False)
 
+            done = False
             totalReward = 0.0
             game_lenght = 0
 
             while not done:
-                currentState = torch.reshape(currentState, [1, 1, 20, 10])
                 if test:
                     action = self.model_action(currentState) 
                     a = action.item()
@@ -313,10 +350,7 @@ class QNetwork:
                 if (done):
                     nextState = None
                 else:
-                    if preprocess:
-                        nextState = self.preprocess(obs)
-                    else:
-                        nextState = torch.tensor([obs], device = device)
+                    nextState, stacked_frames = self.stack_frames(self.stacked_frames, obs, True, False)
 
                 totalReward += reward
                 game_lenght += 1
