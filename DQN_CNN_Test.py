@@ -1,4 +1,4 @@
-from DQN.Tetris_Full_Gym import BlocksEnv
+from DQN.Full_Tetris_Actions import BlocksEnv
 from DQN.Divan_DQN_CNN import *
 import gymnasium as gym
 
@@ -9,7 +9,7 @@ BlocksEnv.obsFlatten= False
 
 #####################################
 #            Controls               #
-version_            = "DQN_CNN_l"# Change the newfigure to 5
+version_            = "DQN_CNN_ASD1"# Change the newfigure to 5
 evaluate            = True         #
 steps_done_         = 'model'       # 
 #####################################
@@ -20,7 +20,7 @@ logg_ = not evaluate
 BlocksEnv.rendering = evaluate 
 preprocess_ = True
 
-DQN_ = QNetwork(version=version_, logging=logg_, lr=0.0007, hiddenLayerSize=(128,), decay_rate=30_000, start_epsilon=1.0, stop_epsilon=0.1)
+DQN_ = QNetwork(version=version_, logging=logg_, numActions=40,  lr=0.0007, hiddenLayerSize=(256,), decay_rate=30_000, start_epsilon=1.0, stop_epsilon=0.1)
 
 if evaluate:
     DQN_.load(steps=steps_done_)

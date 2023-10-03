@@ -42,7 +42,7 @@ class ReplayMemory(object):
 ### Neural network model definition
 class CNN_DQN(nn.Module):
 
-    def __init__(self, height, width, numActions, hiddenLayerSize=(256,), alpha = 0.0005): 
+    def __init__(self, height, width, numActions, hiddenLayerSize=(1024,512), alpha = 0.0005): 
         super(CNN_DQN, self).__init__()     
         self.conv1 = nn.Conv2d(4, 16, kernel_size=4, stride=1)
         self.bn1 = nn.BatchNorm2d(16)
@@ -57,7 +57,8 @@ class CNN_DQN(nn.Module):
         linear_input_size = convw * convh * 16
         
         self.head = nn.Linear(1792, hiddenLayerSize[0])
-        self.fc1 = nn.Linear(hiddenLayerSize[0], numActions)
+        self.fc1 = nn.Linear(hiddenLayerSize[0], 512)
+        self.fc2 = nn.Linear(512, numActions)
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
         self.criterion = nn.MSELoss()
@@ -70,12 +71,13 @@ class CNN_DQN(nn.Module):
         x = F.relu(self.bn2(self.conv2(x)))
 
         x = F.relu(self.head(x.view(x.size(0), -1)))
-        x = self.fc1(x)
+        x = F.relu(self.fc1(x))
+        x= self.fc2(x)
         return x
 
 
 class QNetwork:
-    def __init__(self, version = 'DQN_Default', numActions = 4, state_size = 50, lr=0.0001, 
+    def __init__(self, version = 'DQN_Default', numActions = 40, state_size = 50, lr=0.0001, 
                  gamma = 0.90, memSize = 50000, logging = False, verbose = True, 
                  target_update = 5000, start_epsilon=1, stop_epsilon=0.1, decay_rate=300000, 
                  hiddenLayerSize = (512, ), screen_size = [20,10]):
@@ -89,7 +91,7 @@ class QNetwork:
         self.memory = ReplayMemory(memSize)
         self.models_dir = f"models/DQN_CNN/{version}/" 
         if logging:
-            self.writer = SummaryWriter(f"logs/CNN/{version}")
+            self.writer = SummaryWriter(f"logs/ASDD/{version}")
         self.hiddenLayerSize = hiddenLayerSize
         self.gamma = gamma
         self.steps_done = 0
@@ -104,7 +106,7 @@ class QNetwork:
         self._create_model()
         self.stacked_frames = deque([np.zeros((self.screensize[0],self.screensize[1]), dtype=np.int32) for i in range(self.stack_size)], maxlen=self.stack_size) 
 
-    def stack_frames(self, stacked_frames, state, is_new_episode, pop_):
+    def stack_frames(self, stacked_frames, state, is_new_episode, pop_ = False):
         
         frame = state
     
@@ -129,8 +131,8 @@ class QNetwork:
     def _create_model(self):
         # Instantiate the policy network and the target network
         hiddenLayerSize = self.hiddenLayerSize
-        self.policy_net = CNN_DQN(20, 10, 4, hiddenLayerSize, self.lr)
-        self.target_net = CNN_DQN(20, 10, 4, hiddenLayerSize, self.lr)
+        self.policy_net = CNN_DQN(20, 10, 40, hiddenLayerSize, self.lr)
+        self.target_net = CNN_DQN(20, 10, 40, hiddenLayerSize, self.lr)
 
         # Copy the weights of the policy network to the target network
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -231,7 +233,7 @@ class QNetwork:
             self.writer.add_scalar("rollout/ep_len_mean", game_lenght, self.steps_done)
             self.writer.add_scalar("rollout/exploration_rate", self.eps_threshold, self.steps_done)
 
-    def train(self, env, episodes=1, preprocess=False, totalsteps = 1_000_000, model_test = False, best = False, rule = False):
+    def train(self, env, episodes=1, preprocess=False, totalsteps = 1_000_000, model_test = False, best = False):
         """Trains the Neural Network for x episodes and returns the amount of steps, rewards and scores.
 
         An episode is the same as one game of tetris from start to game over
@@ -250,7 +252,7 @@ class QNetwork:
 
         for e in range(episodes):
             currentObs = env.reset()
-            currentState, stacked_frames = self.stack_frames(self.stacked_frames, currentObs, True, False)
+            currentState, stacked_frames = self.stack_frames(self.stacked_frames, currentObs, True)
 
             done = False
             game_lenght = 0
@@ -281,7 +283,7 @@ class QNetwork:
                         action = np.argmax(rewards)
                     a = torch.tensor([[action]], device = device)
 
-                obs, reward, done, _, _ = env.step(a, True)
+                obs, reward, done, _, _ = env.step(a)
 
                 game_lenght += 1
                 self.steps_done += 1
@@ -290,7 +292,7 @@ class QNetwork:
                 if (done):
                     nextState = None
                 else:
-                    nextState, stacked_frames = self.stack_frames(self.stacked_frames, obs, False, False)
+                    nextState, stacked_frames = self.stack_frames(self.stacked_frames, obs, False)
 
                 rew_tensor = torch.tensor([[reward]], device = device)
                 self.memory.push(currentState, action, nextState, rew_tensor)

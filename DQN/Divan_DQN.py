@@ -4,6 +4,7 @@ import numpy as np
 from minigrid.wrappers import *
 
 import os
+import time 
 
 import torch
 import torch.nn as nn
@@ -73,7 +74,8 @@ class QNetwork:
         self.decay_rate = decay_rate
         self.memory = ReplayMemory(memSize)
         self.models_dir = f"models/DQN/{version}/" 
-        self.writer = SummaryWriter(f"logs/CNN/{version}")
+        if logging:
+            self.writer = SummaryWriter(f"logs/ASDD/{version}")
         self.hiddenLayerSize = hiddenLayerSize
         self.gamma = gamma
         self.steps_done = steps_done
@@ -177,7 +179,7 @@ class QNetwork:
 
     def log(self, totalReward, game_lenght):
         if self.verbose:
-            self.writer.add_scalar("rollout/ep_rew_mean", totalReward, self.steps_done)
+            self.writer.add_scalar("rollout/ep_rew_mean", totalReward/10, self.steps_done)
             self.writer.add_scalar("rollout/ep_len_mean", game_lenght, self.steps_done)
             self.writer.add_scalar("rollout/exploration_rate", self.eps_threshold, self.steps_done)
 
@@ -262,7 +264,7 @@ class QNetwork:
 
     def save(self):
         """Save the weights."""
-        filename = self.models_dir + f'{self.steps_done}.pth'
+        filename = self.models_dir + 'model.pth'
         torch.save(self.policy_net, filename)
 
     def evaluate(self, env, evalEpisodes = 1, test = False, preprocess = False):
@@ -279,6 +281,7 @@ class QNetwork:
             game_lenght = 0
 
             while not done:
+                time.sleep(0.1)
                 if test:
                     action = self.model_action(currentState) 
                     a = action.item()
