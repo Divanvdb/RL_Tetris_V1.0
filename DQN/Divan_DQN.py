@@ -259,7 +259,7 @@ class QNetwork:
         filename = self.models_dir + f'{steps}.pth'
         self.policy_net = torch.load(filename) 
         self.target_net.load_state_dict(self.policy_net.state_dict())
-        self.steps_done = steps
+        self.steps_done = 0
         print('Loaded')
 
     def save(self):
@@ -267,7 +267,7 @@ class QNetwork:
         filename = self.models_dir + 'model.pth'
         torch.save(self.policy_net, filename)
 
-    def evaluate(self, env, evalEpisodes = 1, test = False, preprocess = False):
+    def evaluate(self, env, evalEpisodes = 1, test = False, preprocess = False, continuous = False, time_ = 0.1):
 
         for e in range(evalEpisodes):
             currentObs = env.reset()
@@ -280,8 +280,11 @@ class QNetwork:
             totalReward = 0.0
             game_lenght = 0
 
+            if continuous:
+                self.load('model')
+
             while not done:
-                time.sleep(0.1)
+                time.sleep(time_)
                 if test:
                     action = self.model_action(currentState) 
                     a = action.item()

@@ -1,3 +1,0 @@
-Game Nr	Game Score
-1	215
-2	119

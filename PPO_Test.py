@@ -1,19 +1,20 @@
 from PPO.Divan_PPO_Single import *
-from PPO.Melax_Tetris_Gym import BlocksEnv
+from PPO.Melax_Actions import BlocksEnv
 import gymnasium as gym
 
 #####################################
 #            Controls               #
-version_ = "PPO_Test6"                #
-evaluate = False                    #
+version_ = "PPO_02"                #
+evaluate = True                    #
 logging = not evaluate
 episodes = 500_000                      #
-time_steps = 1024
+time_steps = 512
 steps_done_ = 5085855               #
 #####################################
 
-BlocksEnv.rendering = evaluate
+BlocksEnv.rendering = False#evaluate
 BlocksEnv.obsFlatten = True
+BlocksEnv.save_files = True
 
 env = BlocksEnv()
 # env = gym.make("CartPole-v1")
@@ -21,7 +22,7 @@ env = BlocksEnv()
 # if evaluate:
 #     env = gym.make('CartPole-v1', render_mode = 'human')
 
-agent = Agent(version=version_, input_dims=50, n_actions=4, alpha=0.0001, hidden_size=[512,256])
+agent = Agent(version=version_, input_dims=50, n_actions=20, alpha=0.0003, hidden_size=[512,256], logg_= logging)
 
 total_reward = 0
 game_lenght = 0
@@ -37,7 +38,7 @@ for e in range(episodes):
         i += 1
         action, probs, values = agent.choose_action(obs)
 
-        obs_, rew, done, info = env.step(action)
+        obs_, rew, done, info, _ = env.step(action)
 
         total_reward += rew
         game_lenght += 1

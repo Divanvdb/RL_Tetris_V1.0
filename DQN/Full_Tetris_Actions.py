@@ -315,6 +315,7 @@ class BlocksEnv(gym.Env):
         self.prevHoles = 0
         self.counter = 0
         self.total_reward = 0
+        self.prevHeight = 0
 
         self.columns_height = np.zeros(self.game.width, dtype=int)
         self.row_nr = np.zeros(self.game.height)
@@ -381,7 +382,7 @@ class BlocksEnv(gym.Env):
                 if (arrGameField[j][i] == 0) & (first == False):
                     nr_holes += 1
 
-        if (np.max(columns_height) >= 7): # arrGameField.shape[0] - 1
+        if (np.max(columns_height) >= 17): # arrGameField.shape[0] - 1
             self.game.state = 'gameover'
 
         stdDev = np.std(columns_height)
@@ -395,9 +396,10 @@ class BlocksEnv(gym.Env):
         if gameover:
             game_reward = -1
         else :
-            game_reward =  float(self.cleared * 10 + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 2)
+            game_reward =  float(self.cleared * 10 + (self.prevHeight - np.max(columns_height)) + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 2)
         
         self.prevHoles = nr_holes
         self.prevSTD = stdDev
+        self.prevHeight = np.max(columns_height)
     
         return columns_height, game_reward

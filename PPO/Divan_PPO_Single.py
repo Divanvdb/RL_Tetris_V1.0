@@ -110,15 +110,16 @@ class CriticNetwork(nn.Module):
         self.load_state_dict(T.load(self.checkpoint_file))
 
 class Agent:
-    def __init__(self, version = 'PPO_Default', n_actions = 4, input_dims = 50, gamma=0.99, alpha=0.0001, gae_lambda=0.95,
-            policy_clip=0.2, batch_size=64, n_epochs=10, max_grad_norm = 0.5, hidden_size = [512,256]):
+    def __init__(self, version = 'PPO_Default', n_actions = 40, input_dims = 50, gamma=0.90, alpha=0.0001, gae_lambda=0.95,
+            policy_clip=0.2, batch_size=64, n_epochs=10, max_grad_norm = 0.5, hidden_size = [512,256], logg_ = False):
         self.gamma = gamma
         self.policy_clip = policy_clip
         self.n_epochs = n_epochs
         self.gae_lambda = gae_lambda
         self.max_grad_norm=max_grad_norm
         self.hidden_size = hidden_size
-        self.writer = SummaryWriter(f"logs/PPO/{version}")
+        if logg_:
+            self.writer = SummaryWriter(f"logs/ASDD/{version}")
         models_dir = f"models/PPO/{version}/"
         if not os.path.exists(models_dir):
             os.makedirs(models_dir)
@@ -198,11 +199,11 @@ class Agent:
                 actor_loss = -T.min(weighted_probs, weighted_clipped_probs).mean()
 
                 returns = advantage[batch] + values[batch]
-                critic_loss = 0.5 * (returns-critic_value)**2
+                critic_loss = (returns-critic_value)**2
                 critic_loss = critic_loss.mean()
                 entropy_loss = entropy.mean()
 
-                total_loss = actor_loss + 0.5*critic_loss + 0.1* entropy_loss
+                total_loss = actor_loss + 0.5 * critic_loss + 0.001* entropy_loss
                 self.actor.optimizer.zero_grad()
                 self.critic.optimizer.zero_grad()
                 total_loss.backward()

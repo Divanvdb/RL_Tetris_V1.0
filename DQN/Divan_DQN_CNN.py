@@ -229,7 +229,7 @@ class QNetwork:
 
     def log(self, totalReward, game_lenght):
         if self.verbose:
-            self.writer.add_scalar("rollout/ep_rew_mean", totalReward, self.steps_done)
+            self.writer.add_scalar("rollout/ep_rew_mean", totalReward/10, self.steps_done)
             self.writer.add_scalar("rollout/ep_len_mean", game_lenght, self.steps_done)
             self.writer.add_scalar("rollout/exploration_rate", self.eps_threshold, self.steps_done)
 
@@ -331,7 +331,7 @@ class QNetwork:
         filename = self.models_dir + 'model.pth'
         torch.save(self.policy_net, filename)
 
-    def evaluate(self, env, evalEpisodes = 1, test = False):
+    def evaluate(self, env, evalEpisodes = 1, test = False, continuous = False):
 
         for e in range(evalEpisodes):
             currentObs = env.reset()
@@ -340,6 +340,9 @@ class QNetwork:
             done = False
             totalReward = 0.0
             game_lenght = 0
+
+            if continuous:
+                self.load('model')
 
             while not done:
                 if test:
