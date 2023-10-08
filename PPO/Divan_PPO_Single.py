@@ -119,7 +119,7 @@ class Agent:
         self.max_grad_norm=max_grad_norm
         self.hidden_size = hidden_size
         if logg_:
-            self.writer = SummaryWriter(f"logs/ASDD/{version}")
+            self.writer = SummaryWriter(f"logs/V03/{version}")
         models_dir = f"models/PPO/{version}/"
         if not os.path.exists(models_dir):
             os.makedirs(models_dir)

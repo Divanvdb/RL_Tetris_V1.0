@@ -24,12 +24,12 @@ class Figure:
         [[0, 1, 4, 8], [0, 4, 5, 6], [1, 5, 9, 8], [4, 5, 6, 10]],
         [[0, 1, 5, 9], [4, 5, 6, 8], [0, 4, 8, 9], [2, 4, 5, 6]],  
         [[1, 4, 5, 6], [1, 4, 5, 9], [4, 5, 6, 9], [0, 4, 5, 8]],
-        [[0, 1, 4, 5]]]
+        [[0, 1, 4, 5]],
+        [[0, 1, 5, 6], [1, 5, 4, 8]],
+        [[4, 5, 1, 2], [0, 4, 5, 9]]]
     
     '''
-    ,
-        [[0, 1, 5, 6], [1, 5, 4, 8]],
-        [[4, 5, 1, 2], [0, 4, 5, 9]]
+    
     '''
     
     # When called with a start x and y
@@ -38,7 +38,7 @@ class Figure:
         self.y = y
         self.type = random.randint(0, len(self.figures) - 1)
         self.color = 1
-        self.rotation = 0 # random.randint(0, len(self.figures[self.type]) - 1)
+        self.rotation = random.randint(0, len(self.figures[self.type]) - 1)
         
     
     # Retrieve a figure    
@@ -278,13 +278,11 @@ class BlocksEnv(gym.Env):
             
             self.game.load_field()
         else:
-            fig_type = np.zeros(5)
+            fig_type = np.zeros(7)
             fig_type[self.game.figure.type] = 1
-
-            fig_rot = np.zeros(4)
-            fig_rot[self.game.figure.rotation] = 1
+        
             
-            self.observation = list(self.columns_height) + list(fig_type) + list(fig_rot)
+            self.observation = list(self.columns_height) + list(fig_type)
             self.observation = np.array(self.observation)
         extra = {}
         
@@ -325,7 +323,7 @@ class BlocksEnv(gym.Env):
             if self.obsFlatten:
                 self.observation = self.observation.flatten()
         else:
-            self.observation = np.zeros(12)
+            self.observation = np.zeros(17)
 
         return self.observation
 
@@ -396,7 +394,7 @@ class BlocksEnv(gym.Env):
         if gameover:
             game_reward = -1
         else :
-            game_reward =  float(self.cleared * 10 + (self.prevHeight - np.max(columns_height)) + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 2)
+            game_reward =  float((self.prevHeight - np.max(columns_height)) + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 2)
         
         self.prevHoles = nr_holes
         self.prevSTD = stdDev

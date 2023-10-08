@@ -48,6 +48,7 @@ class DQN(nn.Module):
         self.fc1 = nn.Linear(inputSize, hiddenLayerSize[0])
         self.fc2 = nn.Linear(hiddenLayerSize[0], hiddenLayerSize[1])
         self.fc3 = nn.Linear(hiddenLayerSize[1], numActions)
+
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
         self.criterion = nn.MSELoss()
 
@@ -75,7 +76,7 @@ class QNetwork:
         self.memory = ReplayMemory(memSize)
         self.models_dir = f"models/DQN/{version}/" 
         if logging:
-            self.writer = SummaryWriter(f"logs/ASDD/{version}")
+            self.writer = SummaryWriter(f"logs/V03/{version}")
         self.hiddenLayerSize = hiddenLayerSize
         self.gamma = gamma
         self.steps_done = steps_done

@@ -106,7 +106,8 @@ class PPO:
         super(PPO, self).__init__()
         self.version=version
         self.env = env
-        self.writer = SummaryWriter(f"logs/PPO/{version}")
+        if logging:
+            self.writer = SummaryWriter(f"logs/ASDD/{version}")
         self.gamma=gamma
         self.hidden_size=hidden_size
         self.batch_size=batch_size
@@ -132,7 +133,7 @@ class PPO:
     def make_env(self, env_):
         def thunk():
             #env = env_
-            env = gym.make('CartPole-v1')
+            env = env_
             # env = gym.wrappers.FrameStack(env, 4)
             return env
 
@@ -210,7 +211,7 @@ class PPO:
             with T.no_grad():
                 next_value = self.critic(next_obs).reshape(1, -1)
                 returns = T.zeros_like(self.rewards).to(device)
-                for t in reversed(range(num_steps) - 1):
+                for t in reversed(range(num_steps - 1)):
                     if t == num_steps - 1:
                         nextnonterminal = 1.0 - next_done
                         next_return = next_value

@@ -6,13 +6,13 @@ import gymnasium as gym
 BlocksEnv.test2_s   = True          
 BlocksEnv.save_files= False         
 BlocksEnv.obsFlatten= True 
-BlocksEnv.test_obs = False
+BlocksEnv.test_obs = True
 
 #####################################
 #            Controls               #
-version_            = "DQN_FT_17"   # DQN_FT_15
-evaluate            = False          #
-steps_done_         = "model"      # model_V1
+version_            = "DQN_Obs_LR0.001"    # DQN_FT_15
+evaluate            = False         #
+steps_done_         = "model"       # model_V1
 #####################################
 
 env_ = BlocksEnv()
@@ -20,8 +20,8 @@ BlocksEnv.rendering = evaluate
 preprocess_ = True
 logg_ = not evaluate
 
-DQN_ = QNetwork(version=version_, numActions=40, state_size=200, logging=logg_, 
-                lr=0.0007, decay_rate=50_000, stop_epsilon=0.15, hiddenLayerSize=[2048,1024])
+DQN_ = QNetwork(version=version_, numActions=40, state_size=17, logging=logg_, 
+                lr=0.001, decay_rate=100_000, stop_epsilon=0.15, hiddenLayerSize=[512,256])
 
 if evaluate:
     # env_ = gym.make("Acrobot-v1", render_mode = "human")

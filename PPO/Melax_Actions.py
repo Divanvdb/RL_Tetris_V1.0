@@ -215,8 +215,6 @@ class BlocksEnv(gym.Env):
         if self.game.figure is None:
             self.game.new_figure()
 
-        
-
         x_pos = action % 5 
         self.game.figure.rotation = np.min([len(Figure.figures[self.game.figure.type]) - 1, math.floor(action / 5)])
 
@@ -274,7 +272,7 @@ class BlocksEnv(gym.Env):
         extra = {}
         
 
-        return self.observation, self.reward, self.done, info, extra
+        return self.observation, self.reward, self.done, info , extra
 
     def reset(self):		
         
@@ -377,7 +375,7 @@ class BlocksEnv(gym.Env):
         if gameover:
             game_reward = -1
         else :
-            game_reward =  float(self.cleared * 1 + invalid + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10)
+            game_reward =  float(self.cleared * 1)# + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10)
         
         self.prevHoles = nr_holes
         self.prevSTD = stdDev

@@ -1,28 +1,29 @@
 from PPO.Divan_PPO_Single import *
-from PPO.Melax_Actions import BlocksEnv
+from PPO.Melax_Tetris_Gym import BlocksEnv
 import gymnasium as gym
 
 #####################################
 #            Controls               #
-version_ = "PPO_02"                #
-evaluate = True                    #
+version_ = "PPO_ACS"                #
+evaluate = False                    #
 logging = not evaluate
 episodes = 500_000                      #
-time_steps = 512
+time_steps = 300
 steps_done_ = 5085855               #
 #####################################
 
-BlocksEnv.rendering = False#evaluate
+BlocksEnv.rendering = evaluate
 BlocksEnv.obsFlatten = True
-BlocksEnv.save_files = True
+BlocksEnv.save_files = False
 
 env = BlocksEnv()
+
 # env = gym.make("CartPole-v1")
 # env = gym.wrappers.FrameStack(env, 4)
 # if evaluate:
 #     env = gym.make('CartPole-v1', render_mode = 'human')
 
-agent = Agent(version=version_, input_dims=50, n_actions=20, alpha=0.0003, hidden_size=[512,256], logg_= logging)
+agent = Agent(version=version_, input_dims=50, n_actions=4, alpha=0.0003, hidden_size=[512,256], logg_= logging)
 
 total_reward = 0
 game_lenght = 0
@@ -38,7 +39,7 @@ for e in range(episodes):
         i += 1
         action, probs, values = agent.choose_action(obs)
 
-        obs_, rew, done, info, _ = env.step(action)
+        obs_, rew, done, info= env.step(action)
 
         total_reward += rew
         game_lenght += 1
@@ -51,7 +52,7 @@ for e in range(episodes):
             print(f"Game:\n\tReward: {total_reward}\n\tLenght: {game_lenght}")
             if logging:
                 agent.episodic_log(
-                    total_reward=total_reward,
+                    total_reward=total_reward/10,
                     episode_lenght=game_lenght,
                     total_steps=i,
                 )
@@ -66,8 +67,10 @@ for e in range(episodes):
             except:
                 print('Save Unsuccesful')
 
-    print(f"Update {e}")
-    agent.learn(steps_done=i, logg_=logging)
+    
+    if not evaluate:
+        print(f"Update {e}")
+        agent.learn(steps_done=i, logg_=logging)
 
     agent.memory.clear_memory()
 
@@ -113,43 +116,3 @@ else:
         model = PPO("MlpPolicy", vec_env, verbose=1, tensorboard_log="logs/PPO/MLP_Mel")
     model.learn(total_timesteps=TIMESTEPS)
     model.save("ppo-melax")
-
-raise
-
-
-
-
-
-
-
-
-
-
-from PPO.Melax_Tetris_Gym import BlocksEnv
-from PPO.Divan_PPO import *
-import gymnasium as gym
-
-BlocksEnv.rendering = False
-BlocksEnv.test2_s = False
-BlocksEnv.save_files = False
-BlocksEnv.obsFlatten = True
-
-#####################################
-#            Controls               #
-version_ = "PPO_CP"  # DQN_Eps0.1
-evaluate = False  #
-steps_done_ = 5085855  # 12165000
-#####################################
-
-env_ = BlocksEnv()
-env_ = gym.make("CartPole-v1")
-preprocess_ = True
-
-model = PPO(version=version_, env=env_, numActions=2, state_size=4, logging=True)
-
-if evaluate:
-    # env_ = gym.make("Acrobot-v1", render_mode = "human")
-    # model.load(steps=steps_done_)
-    model.evaluate(evalEpisodes=5, test=False, preprocess=preprocess_)
-else:
-    model.train(episodes=10, num_steps=150)

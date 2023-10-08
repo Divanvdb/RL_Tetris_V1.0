@@ -44,11 +44,11 @@ class CNN_DQN(nn.Module):
 
     def __init__(self, height, width, numActions, hiddenLayerSize=(1024,512), alpha = 0.0005): 
         super(CNN_DQN, self).__init__()     
-        self.conv1 = nn.Conv2d(4, 16, kernel_size=4, stride=1)
-        self.bn1 = nn.BatchNorm2d(16)
+        self.conv1 = nn.Conv2d(2, 8, kernel_size=4, stride=1)
+        self.bn1 = nn.BatchNorm2d(8)
         
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=4, stride=1)
-        self.bn2 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(8, 16, kernel_size=4, stride=1)
+        self.bn2 = nn.BatchNorm2d(16)
 
         def conv2d_size_out(size, kernel_size = 4, stride = 1):
             return (size - (kernel_size - 1) - 1) // stride  + 1
@@ -56,9 +56,9 @@ class CNN_DQN(nn.Module):
         convh = conv2d_size_out(conv2d_size_out(height))
         linear_input_size = convw * convh * 16
         
-        self.head = nn.Linear(1792, hiddenLayerSize[0])
-        self.fc1 = nn.Linear(hiddenLayerSize[0], 512)
-        self.fc2 = nn.Linear(512, numActions)
+        self.head = nn.Linear(linear_input_size, hiddenLayerSize[0])
+        self.fc1 = nn.Linear(hiddenLayerSize[0], hiddenLayerSize[1])
+        self.fc2 = nn.Linear(hiddenLayerSize[1], numActions)
 
         self.optimizer = optim.Adam(self.parameters(), lr=alpha)
         self.criterion = nn.MSELoss()
@@ -80,7 +80,7 @@ class QNetwork:
     def __init__(self, version = 'DQN_Default', numActions = 40, state_size = 50, lr=0.0001, 
                  gamma = 0.90, memSize = 50000, logging = False, verbose = True, 
                  target_update = 5000, start_epsilon=1, stop_epsilon=0.1, decay_rate=300000, 
-                 hiddenLayerSize = (512, ), screen_size = [20,10]):
+                 hiddenLayerSize = (512, ), screen_size = [20,10], stack = 4):
         super(QNetwork,self).__init__()
         self.state_size = state_size
         self.numActions = numActions
@@ -91,14 +91,14 @@ class QNetwork:
         self.memory = ReplayMemory(memSize)
         self.models_dir = f"models/DQN_CNN/{version}/" 
         if logging:
-            self.writer = SummaryWriter(f"logs/ASDD/{version}")
+            self.writer = SummaryWriter(f"logs/V03/{version}")
         self.hiddenLayerSize = hiddenLayerSize
         self.gamma = gamma
         self.steps_done = 0
         self.target_update = target_update
         self.verbose = verbose
         self.logging = logging
-        self.stack_size = 4
+        self.stack_size = stack
         self.eps_threshold = 1
         self.screensize = screen_size
         if not os.path.exists(self.models_dir):
