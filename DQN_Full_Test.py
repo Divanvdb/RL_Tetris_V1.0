@@ -11,16 +11,18 @@ BlocksEnv.test_obs = True
 #####################################
 #            Controls               #
 version_            = "DQN_Obs_LR0.001"    # DQN_FT_15
-evaluate            = False         #
+evaluate            = True         #
 steps_done_         = "model"       # model_V1
+space               = 17
 #####################################
 
 env_ = BlocksEnv()
 BlocksEnv.rendering = evaluate
+BlocksEnv.obs_space = space
 preprocess_ = True
 logg_ = not evaluate
 
-DQN_ = QNetwork(version=version_, numActions=40, state_size=17, logging=logg_, 
+DQN_ = QNetwork(version=version_, numActions=40, state_size=space, logging=logg_, 
                 lr=0.001, decay_rate=100_000, stop_epsilon=0.15, hiddenLayerSize=[512,256])
 
 if evaluate:

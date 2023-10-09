@@ -209,6 +209,7 @@ class BlocksEnv(gym.Env):
     obsFlatten = False
     total_reward = 0
     test_obs = False
+    obs_space = 15
 
     def __init__(self):
         super(BlocksEnv, self).__init__()
@@ -281,8 +282,16 @@ class BlocksEnv(gym.Env):
             fig_type = np.zeros(7)
             fig_type[self.game.figure.type] = 1
         
+            # col_height = np.zeros([17,10])
+            # for i in range(10):
+            #     if self.columns_height[i] >= 17:
+            #         col_height[16][i] = 1
+            #     else:
+            #         col_height[self.columns_height[i]][i] = 1
+
+            # col_height = col_height.flatten()
             
-            self.observation = list(self.columns_height) + list(fig_type)
+            self.observation = list(self.columns_height) + list(fig_type)# [self.game.figure.type]
             self.observation = np.array(self.observation)
         extra = {}
         
@@ -323,7 +332,7 @@ class BlocksEnv(gym.Env):
             if self.obsFlatten:
                 self.observation = self.observation.flatten()
         else:
-            self.observation = np.zeros(17)
+            self.observation = np.zeros(self.obs_space)
 
         return self.observation
 

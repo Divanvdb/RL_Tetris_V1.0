@@ -262,12 +262,17 @@ class BlocksEnv(gym.Env):
 
         self.columns_height, holes, self.reward = self.values(np.array(self.game.field), self.done, invalid)
         self.total_reward += self.reward
-        self.game.save_field()
-        self.game.freeze(False, self.test2_s)
-        self.observation = np.array(self.game.field)
+        
         if self.obsFlatten:
             self.observation = self.observation.flatten()
-        self.game.load_field()
+            self.game.save_field()
+            self.game.freeze(False, self.test2_s)
+            self.observation = np.array(self.game.field)
+            self.game.load_field()
+        else:   
+            self.observation = list(self.columns_height) + [self.game.figure.type]
+            self.observation = np.array(self.observation)
+
         
         extra = {}
         
@@ -302,9 +307,11 @@ class BlocksEnv(gym.Env):
         self.columns_height = np.zeros(self.game.width, dtype=int)
         self.row_nr = np.zeros(self.game.height)
 
-        self.observation = np.array(self.game.field)
         if self.obsFlatten:
+            self.observation = np.array(self.game.field)
             self.observation = self.observation.flatten()
+        else:
+            self.observation = np.zeros(11)
 
         return self.observation
 
