@@ -4,7 +4,7 @@ import gymnasium as gym
 
     
 BlocksEnv.test2_s   = True          
-BlocksEnv.save_files= False         
+BlocksEnv.save_files= True         
 BlocksEnv.obsFlatten= True 
 BlocksEnv.test_obs = True
 
@@ -17,7 +17,7 @@ space               = 17
 #####################################
 
 env_ = BlocksEnv()
-BlocksEnv.rendering = evaluate
+BlocksEnv.rendering = False # evaluate
 BlocksEnv.obs_space = space
 preprocess_ = True
 logg_ = not evaluate

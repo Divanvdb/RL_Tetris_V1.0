@@ -76,7 +76,7 @@ class QNetwork:
         self.memory = ReplayMemory(memSize)
         self.models_dir = f"models/DQN/{version}/" 
         if logging:
-            self.writer = SummaryWriter(f"logs/V03/{version}")
+            self.writer = SummaryWriter(f"logs/FFINAL/{version}")
         self.hiddenLayerSize = hiddenLayerSize
         self.gamma = gamma
         self.steps_done = steps_done
@@ -295,6 +295,7 @@ class QNetwork:
 
                 if (done):
                     nextState = None
+                    totalReward = env.game.score
                 else:
                     if preprocess:
                         nextState = self.preprocess(obs)

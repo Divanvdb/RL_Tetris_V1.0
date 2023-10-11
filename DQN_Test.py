@@ -1,25 +1,25 @@
-from DQN.Melax_Actions import BlocksEnv
+from PPO.Melax_Actions import BlocksEnv
 from DQN.Divan_DQN import *
 import gymnasium as gym
 
         
 BlocksEnv.test2_s   = True          
 BlocksEnv.save_files= True         
-BlocksEnv.obsFlatten= True 
+BlocksEnv.obsFlatten= False 
 
 #####################################
 #            Controls               #
-version_            = "DQN_Direct1"       # DQN_Eps0.1
+version_            = "DQN_2"       # DQN_Eps0.1
 evaluate            = True          #
 steps_done_         = 'model'    # 12165000
 #####################################
 
 env_ = BlocksEnv()
-BlocksEnv.rendering = False# evaluate 
+BlocksEnv.rendering = evaluate 
 preprocess_ = True
 logg_ = not evaluate
 
-DQN_ = QNetwork(version=version_, numActions=20, logging= logg_, decay_rate=30_000, 
+DQN_ = QNetwork(version=version_, state_size=6, numActions=20, logging= logg_, decay_rate=30_000, 
                 start_epsilon=1.0, stop_epsilon=0.1)
 
 if evaluate:

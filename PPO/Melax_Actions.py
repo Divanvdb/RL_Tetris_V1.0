@@ -209,7 +209,7 @@ class BlocksEnv(gym.Env):
         if self.obsFlatten:
             self.observation_space = spaces.Box(low=np.zeros(50), high=np.ones(50), shape=(50,), dtype=np.float64)
         else:
-            self.observation_space = spaces.Box(low=np.zeros([10,5]), high=np.ones([10,5]), shape=(10,5), dtype=np.float64)
+            self.observation_space = spaces.Box(low=np.zeros(6), high=np.ones(6)*10, shape=(6,), dtype=np.float64)
 
     def step(self, action):
         if self.game.figure is None:
@@ -277,7 +277,7 @@ class BlocksEnv(gym.Env):
         extra = {}
         
 
-        return self.observation, self.reward, self.done, info , extra
+        return self.observation, self.reward, self.done, info, extra
 
     def reset(self):		
         
@@ -303,6 +303,7 @@ class BlocksEnv(gym.Env):
         self.prevHoles = 0
         self.counter = 0
         self.total_reward = 0
+        self.prevHeight = 0
 
         self.columns_height = np.zeros(self.game.width, dtype=int)
         self.row_nr = np.zeros(self.game.height)
@@ -311,7 +312,7 @@ class BlocksEnv(gym.Env):
             self.observation = np.array(self.game.field)
             self.observation = self.observation.flatten()
         else:
-            self.observation = np.zeros(11)
+            self.observation = np.zeros(6)
 
         return self.observation
 
@@ -382,9 +383,10 @@ class BlocksEnv(gym.Env):
         if gameover:
             game_reward = -1
         else :
-            game_reward =  float(self.cleared * 1)# + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10)
+            game_reward =  float((self.prevHeight - np.max(columns_height)) + (self.prevSTD - stdDev) + (self.prevHoles - nr_holes) / 10)
         
         self.prevHoles = nr_holes
         self.prevSTD = stdDev
+        self.prevHeight = np.max(columns_height)
     
         return columns_height, nr_holes, game_reward

@@ -278,20 +278,11 @@ class BlocksEnv(gym.Env):
                 self.observation = self.observation.flatten()
             
             self.game.load_field()
-        else:
+        else:       
             fig_type = np.zeros(7)
             fig_type[self.game.figure.type] = 1
-        
-            # col_height = np.zeros([17,10])
-            # for i in range(10):
-            #     if self.columns_height[i] >= 17:
-            #         col_height[16][i] = 1
-            #     else:
-            #         col_height[self.columns_height[i]][i] = 1
 
-            # col_height = col_height.flatten()
-            
-            self.observation = list(self.columns_height) + list(fig_type)# [self.game.figure.type]
+            self.observation = list(self.columns_height) + list(fig_type)
             self.observation = np.array(self.observation)
         extra = {}
         

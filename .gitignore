@@ -3,8 +3,6 @@ logs/
 models/
 __pycache__/
 Test.py
-DQN_Melax
 PlotData/
-Melax.txt
-Results/Distribution.py
-Videos/Melax_PPO_Playing.mp4
+Videos/
+Results/

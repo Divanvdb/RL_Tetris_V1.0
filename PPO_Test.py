@@ -4,7 +4,7 @@ import gymnasium as gym
 
 #####################################
 #            Controls               #
-version_ = "PPO_OBS"                #
+version_ = "PPO_OBSNB"                #
 evaluate = False                    #
 logging = not evaluate
 episodes = 500_000                      #
@@ -13,17 +13,17 @@ steps_done_ = 5085855               #
 #####################################
 
 BlocksEnv.rendering = evaluate
-BlocksEnv.obsFlatten = True
+BlocksEnv.obsFlatten = False
 BlocksEnv.save_files = False
 
 env = BlocksEnv()
 
 # env = gym.make("CartPole-v1")
-# env = gym.wrappers.FrameStack(env, 4)
 # if evaluate:
 #     env = gym.make('CartPole-v1', render_mode = 'human')
 
-agent = Agent(version=version_, input_dims=11, n_actions=4, alpha=0.0003, hidden_size=[512,256], logg_= logging)
+agent = Agent(version=version_, input_dims=6, n_actions=20,
+               alpha=0.0003, hidden_size=[512,256], logg_= logging)
 
 total_reward = 0
 game_lenght = 0
@@ -39,7 +39,7 @@ for e in range(episodes):
         i += 1
         action, probs, values = agent.choose_action(obs)
 
-        obs_, rew, done, info= env.step(action)
+        obs_, rew, done, info, _= env.step(action)
 
         total_reward += rew
         game_lenght += 1
@@ -75,44 +75,3 @@ for e in range(episodes):
     agent.memory.clear_memory()
 
 
-raise
-
-import gymnasium as gym
-from PPO.Melax_Tetris_Gym import BlocksEnv
-
-from stable_baselines3 import PPO
-
-#####################################
-#            Controls               #
-version_ = "PPO_M1"                #
-evaluate = False                    #
-load = True
-logging = not evaluate
-episodes = 500_000                      #
-TIMESTEPS = 5_000_000
-steps_done_ = 5085855               #
-#####################################
-
-BlocksEnv.rendering = evaluate
-BlocksEnv.obsFlatten = True
-
-# Parallel environments
-vec_env = BlocksEnv()
-if evaluate:
-    model = PPO.load("ppo-melax")
-
-    obs = vec_env.reset()
-    while True:
-        action, _states = model.predict(obs)
-        obs, reward, done, info = vec_env.step(action)
-
-        if done:
-            obs = vec_env.reset()
-
-else:
-    if load:
-        model = PPO.load("ppo-melax")
-    else:
-        model = PPO("MlpPolicy", vec_env, verbose=1, tensorboard_log="logs/PPO/MLP_Mel")
-    model.learn(total_timesteps=TIMESTEPS)
-    model.save("ppo-melax")
