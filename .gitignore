@@ -6,3 +6,6 @@ Test.py
 PlotData/
 Videos/
 Results/
+*.pdf
+*.pptx
+*.mpp
