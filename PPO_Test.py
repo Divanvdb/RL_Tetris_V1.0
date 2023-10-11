@@ -4,8 +4,8 @@ import gymnasium as gym
 
 #####################################
 #            Controls               #
-version_ = "PPO_OBSNB"                #
-evaluate = False                    #
+version_ = "PPO_OBS"                #
+evaluate = True                    #
 logging = not evaluate
 episodes = 500_000                      #
 time_steps = 300
