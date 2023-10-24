@@ -39,7 +39,13 @@ class ReplayMemory(object):
 ### Policies and Value Esitmators ###
 #####################################
 
-### Neural network model definition
+'''
+Neural Network Structure 
+
+The size of the network and the learning rate can be set in this class.
+    An Adam optimizer is used for this model
+'''
+
 class CNN_DQN(nn.Module):
 
     def __init__(self, height, width, numActions, hiddenLayerSize=(1024,512), alpha = 0.0005): 
@@ -107,6 +113,10 @@ class QNetwork:
         self.stacked_frames = deque([np.zeros((self.screensize[0],self.screensize[1]), dtype=np.int32) for i in range(self.stack_size)], maxlen=self.stack_size) 
 
     def stack_frames(self, stacked_frames, state, is_new_episode, pop_ = False):
+
+        '''
+        Stacks N number of frames in the deque to be passed to the CNN layer of the agent
+        '''
         
         frame = state
     

@@ -40,7 +40,12 @@ class ReplayMemory(object):
 ### Policies and Value Esitmators ###
 #####################################
 
-### Neural network model definition
+'''
+Neural Network Structure 
+
+The size of the network and the learning rate can be set in this class.
+    An Adam optimizer is used for this model
+'''
 class DQN(nn.Module):
 
     def __init__(self, alpha, inputSize, numActions, hiddenLayerSize=(512, 256)):
@@ -89,12 +94,15 @@ class QNetwork:
 
 
     def _create_model(self):
+        '''
+        Creates the agent with random weights and sizes specified by hiddenLayerSize
+        '''
         self.policy_net = DQN(self.lr, self.state_size, self.numActions, self.hiddenLayerSize)
         self.target_net = DQN(self.lr, self.state_size, self.numActions, self.hiddenLayerSize)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
-    ''' Preprocessing steps: Flatten and ToTensor
+    ''' Preprocessing steps: Flatten and To Tensor
 
         Converts the observation into a flattened array of tensors for the model to analyse
     
@@ -179,6 +187,11 @@ class QNetwork:
         self.policy_net.optimizer.step()
 
     def log(self, totalReward, game_lenght):
+        '''
+        The TensorBoard logging function
+
+        Writes the game information to TensorBoard for validation
+        '''
         if self.verbose:
             self.writer.add_scalar("rollout/ep_rew_mean", totalReward/10, self.steps_done)
             self.writer.add_scalar("rollout/ep_len_mean", game_lenght, self.steps_done)
